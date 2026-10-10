@@ -2,183 +2,125 @@
 
 **English** / [中文](#中文)
 
-The official [Prism](https://github.com/prism-rokid) client for Rokid AI
-glasses. Keep your AI coding agents running where they work best — on your
-desktop — and stay in control from your glasses: follow conversations, dictate
-messages, answer approval requests, and watch usage quotas, hands-free.
+The official Prism client for Rokid AI glasses. Your coding agents keep
+running on the desktop; you follow conversations, dictate messages, handle
+approvals and check quotas from your glasses.
 
-Prism connects to agents such as Codex, Claude Code, Hermes, OpenClaw and
-CodeBuddy through plugins. This panel renders whatever the user has connected,
-so new agents appear here automatically — see
-[build-your-own integrations](#build-your-own-agent-integration) below.
+Chain: **glasses (this panel) → Prism Cloud → Prism Hub (desktop) → plugin →
+agent** (Codex, Claude Code, Hermes, OpenClaw, ...). The panel signs in with
+a host-issued device credential — no token is embedded, logged or stored.
 
-## What you get
+## Features
 
-- **Full conversation view** — remote sessions streamed live over NDJSON with
-  Markdown rendering, tool calls and step-by-step progress.
-- **Voice-first input** — dictate messages through the glasses microphone;
-  a single tap stops, a long press re-opens the menu.
-- **Stay in control** — switch host/plugin/thread, model, reasoning effort and
-  permission mode; interrupt a running task at any time.
-- **Approvals on the go** — resolve permission requests directly from the
-  glasses before your agent unblocks itself.
-- **Two home-screen widgets** — `Prism Usage` (5-hour / weekly quota windows,
-  working + unread counters) and `Prism Conversations` (latest, running and
-  unread sessions, bottom-aligned like the glasses launcher).
-- **Four locales** — 简体中文, 繁體中文, English, 日本語, resolved from the
-  device locale.
+- Live conversations: NDJSON stream, Markdown, tool calls
+- Voice input: tap to stop, long-press for the menu
+- Approvals; switch model, reasoning effort and permissions; stop anytime
+- Two home widgets: usage quotas, latest conversations
+- 简体中文 · 繁體中文 · English · 日本語
 
-## How it works
+## Build your own
 
-```mermaid
-flowchart LR
-    G["🕶️ Rokid Glasses<br/>(this AIUI panel)"]
-    C["Prism Cloud<br/>(API + realtime)"]
-    H["Prism Hub<br/>(desktop app)"]
-    P["Prism plugin"]
-    A["Native agent<br/>(Codex, Claude Code, ...)"]
+- **Connect a new agent to Prism** — write a plugin with the
+  [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk).
+  No changes needed here; the panel lists it automatically.
+- **Build your own connector & terminal** — use this repo as a reference
+  implementation and **detach from Prism entirely**: replace the API client
+  (`lib/prism-api.js`) with one for your own backend and reuse what is
+  backend-agnostic — device-credential flow, NDJSON stream client, touchpad
+  gesture layer, widget runtime, i18n core.
 
-    G <--> C
-    C <--> H
-    H <--> P
-    P <--> A
-```
+> ⚠️ **Do not point your own app at the Prism relay servers.** See
+> [Restrictions](#restrictions).
 
-The panel talks only to the Prism cloud API: catalogs refresh with
-signature-based light polling (3 s), while conversation detail and bodies
-arrive as an NDJSON state stream. Authentication uses a host-issued device
-credential (`navigator.requestDeviceToken()`); no token is ever embedded in
-the source, written to logs, or persisted to disk.
+## Restrictions
 
-## Repository map
+- The cloud relays configured in this repo (`ai-cloud.rokid.com`,
+  `ai-cloud-test.rokid.com`) are Rokid infrastructure, not part of the
+  open-source grant. AIUI apps built from this code must not use them, and
+  must not be published to the Rokid Agent Store while configured to use
+  them, without written authorization from Rokid.
+- The code is for **non-commercial use only** — [LICENSE](./LICENSE).
+  Commercial licensing: contact Rokid.
 
-| Path | Role |
-| --- | --- |
-| `pages/index/` | The page: a thin composition root over method groups |
-| `lib/prism-page-*.js` | Page behavior by concern — boot, sync, stream, menu, voice, input |
-| `lib/prism-api.js` | The full remote contract: endpoints, envelope unwrapping, NDJSON state stream |
-| `lib/prism-*-model.js` | Pure model builders (chat, inbox, labels, widget summaries) |
-| `lib/prism-widget-runtime.js` | Shared widget core: i18n, auth, polling, refresh policy |
-| `widgets/prism-usage/`, `widgets/prism-conversations/` | The two 1×1 home-screen widgets |
-| `lib/i18n/` | Locale packs; all packs keep an identical key set (test-enforced) |
-| `dev/cors-proxy.mjs` | Local CORS relay for browser preview |
-| `tests/` | 160+ `node:test` cases — models, source-shape, gestures, widgets |
-
-New contributor starting points: `pages/index/index.js` (the map),
-`lib/prism-api.js` (the remote contract), `lib/prism-widget-runtime.js`
-(how both widgets share boot/auth/polling).
-
-## Getting started (development)
+## Develop
 
 ```bash
-git clone https://github.com/prism-rokid/prism-aiui.git
-cd prism-aiui
 npm install
-npm test
-npm run pack        # -> ../.aiui-build/prism-aiui/package.aix
+npm test          # 160+ node:test cases, no device needed
+npm run pack
 ```
 
-1. Import the repo into [Craft](https://js.rokid.com) (the AIUI studio) and
-   preview `pages/index/index`. The page targets the glasses' 480×352 logical
-   viewport — it is sized in fixed `px`, not `rpx` or `100vh`.
-2. To sign in, connect the Prism desktop hub to your account first; the panel
-   acquires its device credential from the glasses at startup.
-3. For browser preview against a Prism gateway, run
-   `node dev/cors-proxy.mjs` (NDJSON streams are piped unbuffered).
-
-### Environments
-
-Packaged builds target the **production** gateway
-(`https://ai-cloud.rokid.com/prism/api`). For local development against the
-test environment, drop a gitignored `env.json` in the repo root:
+Import into [Craft](https://js.rokid.com) and preview `pages/index/index`
+(480×352 viewport). Packaged builds target production; for the test gateway
+add a gitignored `env.json` in the repo root:
 
 ```json
 { "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }
 ```
 
-`env.json` is excluded from both git (`.gitignore`) and the packaged AIX
-(`.aixignore`), so the override never leaves your machine.
-
-## Build your own agent integration
-
-Two supported paths, depending on what you want to add:
-
-1. **A new agent for Prism** (most cases): write a plugin with the
-   [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk) — Go,
-   TypeScript or Python. The plugin bridges Prism Hub to your agent; this
-   panel needs no changes and will list, render and control it automatically.
-2. **A different glasses panel**: fork this repo as a template. The pieces
-   built to be reused are the device-credential flow
-   (`lib/prism-device-auth.js`), the NDJSON stream client
-   (`lib/prism-api.js`), the per-surface touchpad gesture layer
-   (`lib/prism-gesture.js`, `lib/prism-page-input.js`), the widget runtime
-   (`lib/prism-widget-runtime.js`) and the four-locale i18n core. Swap the
-   API client for your backend and keep the rest.
-
-## Contributing
-
-Bug reports, fixes, locale packs and widget/layout improvements are all
-welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md) for the development loop
-and code expectations. Good first areas: i18n coverage, widget layouts,
-gesture tuning on new firmware, and test coverage for the model builders.
+Start reading: `pages/index/index.js` → `lib/prism-api.js` →
+`lib/prism-widget-runtime.js`. Full guide: [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-[MIT](./LICENSE) — vendored markdown libraries keep their own notices under
-[`lib/vendor/`](./lib/vendor/).
+[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid. Vendored markdown
+libraries keep their own notices in [`lib/vendor/`](./lib/vendor/).
 
 ---
 
 # 中文
 
-Rokid AI 眼镜上的官方 [Prism](https://github.com/prism-rokid) 客户端。让编程
-Agent 在桌面端专心干活，你在眼镜上随时掌控：跟进会话、语音输入、处理审批、查看
-额度，全程解放双手。
+Rokid AI 眼镜上的官方 Prism 客户端。编程 Agent 留在桌面干活，你在眼镜上跟进
+会话、语音输入、处理审批、查看额度。
 
-Prism 通过插件接入 Codex、Claude Code、Hermes、OpenClaw、CodeBuddy 等 Agent。
-面板只负责呈现用户已连接的插件，新 Agent 接入后自动出现。
+链路：**眼镜（本面板）→ Prism 云端 → 桌面 Prism Hub → 插件 → Agent**（Codex、
+Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据登录，源码、日志、
+磁盘里都不会出现 token。
 
 ## 功能
 
-- **完整会话视图** — NDJSON 状态流实时推送，Markdown 渲染、工具调用与执行
-  进度一目了然。
-- **语音优先输入** — 眼镜麦克风听写；单击停止，长按呼出菜单。
-- **远程控制** — 切换主机/插件/线程、模型、推理强度与权限模式，随时打断任务。
-- **移动审批** — 直接在眼镜上解决权限请求，Agent 不再阻塞等待。
-- **两个桌面小组件** — 「棱镜用量」（5 小时/每周额度、工作中与未读计数）和
-  「棱镜会话」（最新、运行中、未读会话，底对齐布局）。
-- **四种语言** — 简体中文、繁體中文、English、日本語，跟随设备语言。
+- 会话实时流：NDJSON 推送、Markdown 渲染、工具调用
+- 语音输入：单击停止，长按呼出菜单
+- 审批处理；切换模型、推理强度、权限；随时打断
+- 两个桌面小组件：用量额度、最新会话
+- 简体中文 · 繁體中文 · English · 日本語
 
-## 工作原理
+## 做你自己的
 
-面板只与 Prism 云端通信：目录用签名轻轮询（3 秒），会话详情与正文走 NDJSON
-状态流。鉴权使用宿主签发的设备凭据（`navigator.requestDeviceToken()`），源码、
-日志与磁盘中都不会出现 token。
+- **给 Prism 接新 Agent**：用
+  [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk) 写插件，
+  本面板零改动自动展示。
+- **做自己的连接器和终端**：把本仓库当作参考实现，**完全脱离 Prism 体系**——
+  换掉 API 客户端（`lib/prism-api.js`）接你自己的后端，复用与后端无关的部分：
+  设备凭据流程、NDJSON 流客户端、触控手势层、小组件运行时、多语言核心。
+
+> ⚠️ **不要让你自己的应用连接 Prism 中继服务器**，见下方限制。
+
+## 限制
+
+- 仓库里配置的中继服务器（`ai-cloud.rokid.com`、`ai-cloud-test.rokid.com`）
+  是 Rokid 的基础设施，**不在开源授权范围内**。基于本仓库开发的 AIUI 应用不得
+  使用这些服务器；未经 Rokid 书面授权，不得将连接这些服务器的应用上架到智能体
+  商店。
+- 本仓库代码**仅限非商业使用**，见 [LICENSE](./LICENSE)。商用授权请联系 Rokid。
 
 ## 开发
 
 ```bash
 npm install
-npm test
+npm test          # 160+ 条测试，无需真机
 npm run pack
 ```
 
-用 [Craft](https://js.rokid.com) 导入仓库预览 `pages/index/index`（480×352
-逻辑视口）；浏览器联调网关运行 `node dev/cors-proxy.mjs`。打包产物默认连正式
-环境，本地连测试环境请在根目录放置 gitignore 的 `env.json`
+用 [Craft](https://js.rokid.com) 导入并预览 `pages/index/index`（480×352 视口）。
+打包默认连正式环境；本地连测试网关在根目录放 gitignored 的 `env.json`
 （`{ "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }`）。
 
-代码结构、环境切换、贡献流程见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
-
-## 接入你自己的 Agent
-
-- **给 Prism 接新 Agent**：用
-  [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk) 写插件
-  （Go / TypeScript / Python），面板零改动即可自动展示与控制。
-- **做另一副眼镜面板**：以本仓库为模板，复用设备凭据、NDJSON 流客户端、
-  触控手势层、小组件运行时与四语言 i18n，替换 API 客户端即可。
+入门阅读：`pages/index/index.js` → `lib/prism-api.js` →
+`lib/prism-widget-runtime.js`。完整指南见
+[CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 许可
 
-[MIT](./LICENSE)；内嵌的 markdown 库在 [`lib/vendor/`](./lib/vendor/) 保留各自
-的许可声明。
+[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid。内嵌的 markdown 库在
+[`lib/vendor/`](./lib/vendor/) 保留各自许可。

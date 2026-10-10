@@ -1,0 +1,12 @@
+{
+  "widgets": {
+    "widgets/prism-usage/index": {
+      "displayName": "プリズム使用量",
+      "description": "CodeX などのエージェントの5時間・週次クォータ使用状況を表示"
+    },
+    "widgets/prism-conversations/index": {
+      "displayName": "プリズム会話",
+      "description": "最新・実行中・未読のリモートエージェント会話を表示"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "widgets": {
+    "widgets/prism-usage/index": {
+      "displayName": "Prism Usage",
+      "description": "Shows 5-hour and weekly quota usage for CodeX and other agents"
+    },
+    "widgets/prism-conversations/index": {
+      "displayName": "Prism Conversations",
+      "description": "Shows the latest, running, and unread remote agent conversations"
+    }
+  }
+}

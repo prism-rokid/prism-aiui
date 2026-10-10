@@ -1,0 +1,8 @@
+.agents/
+skills-lock.json
+.mastergo/
+.aix/
+.DS_Store
+node_modules/
+/env.json
+.zcode/

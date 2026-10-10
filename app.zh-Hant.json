@@ -1,0 +1,12 @@
+{
+  "widgets": {
+    "widgets/prism-usage/index": {
+      "displayName": "棱鏡用量",
+      "description": "展示 CodeX 等 Agent 的 5 小時與每週額度用量"
+    },
+    "widgets/prism-conversations/index": {
+      "displayName": "棱鏡會話",
+      "description": "展示最新、執行中與未讀的遠端智能體會話"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "permissions": ["RECORD_AUDIO"],
+  "pages": [
+    "pages/index/index"
+  ],
+  "widgets": [
+    {
+      "path": "widgets/prism-usage/index",
+      "family": "1x1",
+      "displayName": "棱镜用量",
+      "description": "展示 CodeX 等 Agent 的 5 小时与每周额度用量"
+    },
+    {
+      "path": "widgets/prism-conversations/index",
+      "family": "1x1",
+      "displayName": "棱镜会话",
+      "description": "展示最新、运行中与未读的远程智能体会话"
+    }
+  ],
+  "window": {
+    "navigationBarTitleText": "棱镜面板",
+    "viewport": {
+      "width": "device-width"
+    }
+  }
+}

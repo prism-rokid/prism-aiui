@@ -1,0 +1,14 @@
+{
+  "name": "rokid-prism-aiui",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Rokid Glasses AIUI primitives for Prism remote agents.",
+  "main": "app.js",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "pack": "node scripts/pack-project.mjs"
+  },
+  "devDependencies": {
+    "@yodaos-pkg/ink": "0.14.0"
+  }
+}

@@ -132,7 +132,7 @@ export default {
   onLoad() {
     // Build marker: grep this tag in logcat to confirm which build the page
     // instance is actually serving.
-    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261008-menu-cursor' }));
+    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261011-opensource-prod' }));
     trace('page.load.start', { surface: this.data.surface });
     wx.setBackgroundColor({ backgroundColor: '#000000' });
     // Locale first: every later label read (welcome message, menu, hints)

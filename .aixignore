@@ -4,7 +4,7 @@
 .aixignore
 **/.DS_Store
 /env.json
-/scripts/pack-project.mjs
+/scripts/
 
 # AI-assisted development and design snapshots
 .agents/

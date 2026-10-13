@@ -6,6 +6,8 @@ The official Prism client for Rokid AI glasses. Your coding agents keep
 running on the desktop; you follow conversations, dictate messages, handle
 approvals and check quotas from your glasses.
 
+![](docs/screenshot.jpg)
+
 Chain: **glasses (this panel) → Prism Cloud → Prism Hub (desktop) → plugin →
 agent** (Codex, Claude Code, Hermes, OpenClaw, ...). The panel signs in with
 a host-issued device credential — no token is embedded, logged or stored.
@@ -95,6 +97,8 @@ builds the clean production package). Start reading: `pages/index/index.js` →
 
 Rokid AI 眼镜上的官方 Prism 客户端。编程 Agent 留在桌面干活，你在眼镜上跟进
 会话、语音输入、处理审批、查看额度。
+
+![](docs/screenshot.jpg)
 
 链路：**眼镜（本面板）→ Prism 云端 → 桌面 Prism Hub → 插件 → Agent**（Codex、
 Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据登录，源码、日志、

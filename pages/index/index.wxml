@@ -36,33 +36,17 @@
           <view class="prism-chat-content" ink:else>
             <view ink:for="{{visibleChatItems}}" ink:key="key" id="{{item.anchorId}}" class="{{item.className}}">
               <view class="prism-user-bubble" ink:if="{{item.kind === 'user'}}">
-                <view class="prism-user-bubble-frame">
-                  <view class="prism-bubble-side prism-bubble-side-left">
-                    <image class="prism-bubble-left-top" src="../../assets/chat_bubble/left_top.svg" />
-                    <image class="prism-bubble-left-mid" src="../../assets/chat_bubble/left_mid.svg" />
-                    <image class="prism-bubble-left-bottom" src="../../assets/chat_bubble/left_bottom.svg" />
-                  </view>
-                  <view class="prism-user-bubble-center">
-                    <view class="prism-bubble-edge"></view>
-                    <view class="prism-user-bubble-body">
-                      <text class="prism-user-copy">{{item.content}}</text>
-                      <text class="prism-message-status" ink:if="{{item.statusLabel}}">{{item.statusLabel}}</text>
-                    </view>
-                    <view class="prism-bubble-edge"></view>
-                  </view>
-                  <view class="prism-bubble-side prism-bubble-side-right">
-                    <image class="prism-bubble-right-top" src="../../assets/chat_bubble/right_top.svg" />
-                    <image class="prism-bubble-right-mid" src="../../assets/chat_bubble/right_mid.svg" />
-                  </view>
+                <view class="prism-user-bubble-body">
+                  <text class="prism-user-copy">{{item.content}}</text>
+                  <text class="prism-message-status" ink:if="{{item.statusLabel}}">{{item.statusLabel}}</text>
                 </view>
-                <image class="prism-bubble-tail" src="../../assets/chat_bubble/right_bottom.svg" />
               </view>
               <text class="prism-message-meta" ink:elif="{{item.kind === 'assistant_meta'}}">{{item.text}}</text>
               <streamdown
                 class="prism-streamdown"
                 ink:elif="{{item.kind === 'assistant_markdown'}}"
                 content="{{item.content}}"
-                font-size="13"
+                font-size="15"
               ></streamdown>
             </view>
             <view class="prism-processing" ink:if="{{isRunning}}">
@@ -82,7 +66,7 @@
           </view>
           <scroll-view class="prism-inbox-list" scroll-y="true" scroll-top="{{inboxScrollTop}}">
             <view class="prism-inbox-list-content">
-              <block ink:for="{{inboxItems}}" ink:key="id">
+              <view class="prism-inbox-row" ink:for="{{inboxItems}}" ink:key="id">
                 <view ink:if="{{item.groupLabel}}" class="prism-inbox-group">
                   <text class="prism-inbox-group-label">{{item.groupLabel}}</text>
                 </view>
@@ -98,7 +82,7 @@
                     </view>
                   </view>
                 </button>
-              </block>
+              </view>
               <view class="prism-inbox-list-tail"></view>
             </view>
           </scroll-view>

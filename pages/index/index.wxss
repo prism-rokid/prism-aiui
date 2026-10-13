@@ -256,63 +256,16 @@ button {
 .prism-agent-row-end { margin-bottom: var(--spacing-md); }
 
 .prism-user-bubble {
-  --prism-bubble-border-opacity: 0.3;
   width: auto;
   max-width: 85%;
   align-self: flex-end;
   display: flex;
+  flex-shrink: 0;
   flex-direction: column;
-  align-items: flex-end;
   box-sizing: border-box;
   overflow: hidden;
-}
-
-.prism-user-bubble-frame {
-  width: auto;
-  max-width: 100%;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  box-sizing: border-box;
-}
-
-.prism-bubble-side {
-  width: 10px;
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-}
-.prism-bubble-side-left { align-items: flex-start; }
-.prism-bubble-side-right { align-items: flex-end; }
-.prism-bubble-left-top { width: 10px; height: 3px; flex-shrink: 0; }
-.prism-bubble-left-mid { width: 1px; flex-grow: 1; flex-shrink: 1; }
-.prism-bubble-left-bottom { width: 10px; height: 10px; flex-shrink: 0; }
-.prism-bubble-right-top { width: 10px; height: 10px; flex-shrink: 0; }
-.prism-bubble-right-mid { width: 1px; flex-grow: 1; flex-shrink: 1; }
-
-.prism-bubble-left-top, .prism-bubble-left-mid, .prism-bubble-left-bottom,
-.prism-bubble-right-top, .prism-bubble-right-mid, .prism-bubble-tail {
-  opacity: var(--prism-bubble-border-opacity);
-}
-
-.prism-user-bubble-center {
-  width: auto;
-  min-width: 1px;
-  max-width: 100%;
-  display: flex;
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: auto;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-.prism-bubble-edge {
-  width: 100%;
-  height: 1px;
-  flex-shrink: 0;
-  background-color: var(--prism-primary);
-  opacity: var(--prism-bubble-border-opacity);
+  border: 0.5px solid var(--prism-primary-30);
+  border-radius: 4px;
 }
 
 .prism-user-bubble-body {
@@ -320,19 +273,12 @@ button {
   min-width: 1px;
   max-width: 100%;
   display: flex;
-  flex-grow: 1;
-  flex-shrink: 1;
-  flex-basis: auto;
   flex-direction: column;
-  justify-content: center;
   box-sizing: border-box;
-  /* Ink top-aligns text inside its line box, so the last line's descenders sit
-     flush with the box bottom; the extra bottom padding restores the gap that
-     the 18px line-height half-leading would normally provide. */
-  padding: 4px 6px 9px;
+  /* Includes the former side inset; the border no longer reserves image space. */
+  padding: 2px 8px 4.5px;
 }
 
-.prism-bubble-tail { width: 10px; height: 5px; flex-shrink: 0; }
 .prism-user-copy, .prism-message-meta, .prism-message-status, .prism-agent-copy, .prism-processing text {
   font-family: sans-serif;
   font-size: 13px;
@@ -349,8 +295,10 @@ button {
 .prism-message-status { align-self: flex-end; opacity: 0.5; }
 .prism-agent-copy { width: 100%; }
 
-.prism-agent-markdown-row { width: 100%; max-width: 100%; margin-bottom: var(--spacing-md); overflow: hidden; }
-.prism-streamdown { width: 100%; max-width: 100%; flex-shrink: 1; box-sizing: border-box; overflow: hidden; font-family: sans-serif; font-size: 13px; line-height: 18px; }
+.prism-agent-markdown-row { width: 100%; max-width: 100%; margin-bottom: var(--spacing-md); overflow: visible; }
+/* Inline code borders extend above glyph bounds; keep a small paint inset
+   and let the chat viewport own clipping instead of clipping each reply. */
+.prism-streamdown { width: 100%; max-width: 100%; flex-shrink: 0; box-sizing: border-box; padding: 3px 0; overflow: visible; font-family: sans-serif; font-size: 15px; line-height: 24px; }
 .prism-processing { width: 100%; align-self: flex-start; gap: var(--spacing-sm); opacity: 0.7; }
 .prism-spinner { width: 12px; text-align: center; }
 .prism-muted { opacity: 0.5; }
@@ -480,6 +428,9 @@ block {
 }
 .prism-inbox-list { width: 100%; height: 100%; min-height: 1px; flex-grow: 1; flex-shrink: 1; flex-basis: auto; }
 .prism-inbox-list-content { width: 100%; display: flex; flex-direction: column; }
+/* Ink renders block as a real view; use an explicit vertical row wrapper so
+   group headers add height above their conversation instead of sitting beside it. */
+.prism-inbox-row { width: 100%; display: flex; flex-direction: column; flex-shrink: 0; }
 /* The header height must stay in lockstep with INBOX_GROUP_HEADER_HEIGHT:
    the focus scroll math treats it as a fixed row. */
 .prism-inbox-group { width: 100%; height: 24px; display: flex; flex-shrink: 0; flex-direction: row; align-items: flex-end; box-sizing: border-box; padding: 0 var(--spacing-md) 3px; }

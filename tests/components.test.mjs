@@ -166,32 +166,25 @@ test('explicit page font sizes include the MasterGo conversation scale', async (
 
   // 11px exists only on the inbox meta line (project · time), one step below
   // the 14px thread title per the inbox redesign.
-  assert.deepEqual([...new Set(fontSizes)].sort((a, b) => a - b), [11, 12, 13, 14, 16]);
+  assert.deepEqual([...new Set(fontSizes)].sort((a, b) => a - b), [11, 12, 13, 14, 15, 16]);
 });
 
-test('conversation layout follows the MasterGo chatbox and bubble components', async () => {
+test('conversation layout uses compact rounded rectangular user bubbles', async () => {
   const page = await readPageBundle();
 
   assert.match(page, /\.prism-chat-content\s*\{[^}]*width:\s*100%[^}]*flex-direction:\s*column[^}]*padding:\s*var\(--spacing-sm\) var\(--spacing-md\)/s);
   assert.match(page, /\.prism-main-chatbox\s*\{[^}]*box-sizing:\s*border-box[^}]*border-top:\s*0\.5px solid var\(--prism-primary-20\)[^}]*border-bottom:\s*0\.5px solid var\(--prism-primary-20\)/s);
   assert.match(page, /\.prism-user-bubble\s*\{[^}]*width:\s*auto[^}]*max-width:\s*85%[^}]*align-self:\s*flex-end[^}]*overflow:\s*hidden/s);
-  assert.match(page, /\.prism-user-bubble-frame\s*\{[^}]*width:\s*auto[^}]*max-width:\s*100%[^}]*flex-direction:\s*row/s);
-  assert.match(page, /--prism-bubble-border-opacity:\s*0\.3/);
-  assert.match(page, /\.prism-user-bubble-center\s*\{[^}]*flex-grow:\s*1[^}]*flex-basis:\s*auto[^}]*flex-direction:\s*column/s);
-  assert.match(page, /\.prism-bubble-edge\s*\{[^}]*width:\s*100%[^}]*height:\s*1px[^}]*background-color:\s*var\(--prism-primary\)[^}]*opacity:\s*var\(--prism-bubble-border-opacity\)/s);
-  assert.match(page, /\.prism-user-bubble-body\s*\{[^}]*width:\s*auto[^}]*max-width:\s*100%[^}]*flex-grow:\s*1[^}]*flex-basis:\s*auto[^}]*padding:\s*4px 6px/s);
-  assert.doesNotMatch(page, /\.prism-user-bubble-body\s*\{[^}]*(?:border-top|border-bottom)/s);
-  assert.equal((page.match(/class="prism-bubble-edge"/g) || []).length, 2);
+  assert.match(page, /\.prism-user-bubble\s*\{[^}]*border:\s*0\.5px solid var\(--prism-primary-30\)[^}]*border-radius:\s*4px/s);
+  assert.match(page, /\.prism-user-bubble-body\s*\{[^}]*padding:\s*2px 8px 4\.5px/s);
+  assert.doesNotMatch(page, /chat_bubble|prism-bubble-side|prism-bubble-edge|prism-bubble-tail|prism-user-bubble-frame/);
   assert.match(page, /\.prism-user-copy[^}]*font-size:\s*13px[^}]*line-height:\s*18px/s);
-  assert.match(page, /<streamdown[\s\S]*content="\{\{item\.content\}\}"[\s\S]*font-size="13"[\s\S]*><\/streamdown>/);
+  assert.match(page, /<streamdown[\s\S]*content="\{\{item\.content\}\}"[\s\S]*font-size="15"[\s\S]*><\/streamdown>/);
   assert.doesNotMatch(page, /streaming="/, 'the streaming cursor is removed from assistant replies');
-  assert.match(page, /\.prism-streamdown\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*flex-shrink:\s*1[^}]*overflow:\s*hidden[^}]*font-size:\s*13px[^}]*line-height:\s*18px/s);
+  assert.match(page, /\.prism-streamdown\s*\{[^}]*width:\s*100%[^}]*max-width:\s*100%[^}]*flex-shrink:\s*0[^}]*padding:\s*3px 0[^}]*overflow:\s*visible[^}]*font-size:\s*15px[^}]*line-height:\s*24px/s);
   assert.doesNotMatch(page, /renderMarkdown|assistant_block|\.md-block|\.md-line/);
   assert.doesNotMatch(page, /item\.s[0-5](?:c)?/);
   assert.doesNotMatch(page, /prism-bubble-rule/);
-  for (const asset of ['left_top', 'left_mid', 'left_bottom', 'right_top', 'right_mid', 'right_bottom']) {
-    assert.ok(page.includes(`assets/chat_bubble/${asset}.svg`), `${asset}.svg should remain in the adaptive user bubble`);
-  }
 });
 
 test('long user links gain display-only line break opportunities', async () => {
@@ -311,7 +304,8 @@ test('inbox panel renders a grouped cross-agent list with relative time', async 
   assert.match(page, /scroll-top="\{\{inboxScrollTop\}\}"/);
   assert.match(page, /<view class="prism-inbox-panel" ink:if="\{\{surface === 'inbox'\}\}" role="navigation">/);
   // Day grouping: one header before the first row of 今天/昨天/更早之前.
-  assert.match(page, /<block ink:for="\{\{inboxItems\}\}" ink:key="id">/);
+  assert.match(page, /<view class="prism-inbox-row" ink:for="\{\{inboxItems\}\}" ink:key="id">/);
+  assert.match(page, /\.prism-inbox-row\s*\{[^}]*flex-direction:\s*column[^}]*flex-shrink:\s*0/s);
   assert.match(page, /<view ink:if="\{\{item\.groupLabel\}\}" class="prism-inbox-group">/);
   assert.match(page, /class="prism-inbox-group-label">\{\{item\.groupLabel\}\}/);
   assert.match(page, /\.prism-inbox-group\s*\{[^}]*height:\s*24px/s);

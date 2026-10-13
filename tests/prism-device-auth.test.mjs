@@ -108,39 +108,26 @@ test('resolveAccountCredential prefers the device credential over the local toke
   const runtimeNavigator = {
     requestDeviceToken: async () => ({ token: 'opaque-device-token', tokenType: 'Bearer' })
   };
-  const resolved = await resolveAccountCredential({ accountToken: 'local-debug-token' }, runtimeNavigator);
+  const resolved = await resolveAccountCredential(runtimeNavigator, { accountToken: 'local-debug-token' });
   assert.deepEqual(resolved, {
     accountToken: 'opaque-device-token',
     summary: { tokenType: 'Bearer', tokenLength: 19 }
   });
 });
 
-test('resolveAccountCredential falls back to the env.json token only without an Ink navigator', async () => {
-  const resolved = await resolveAccountCredential({ accountToken: '  local-debug-token  ' }, {});
-  assert.deepEqual(resolved, {
-    accountToken: 'local-debug-token',
-    summary: { tokenType: 'env.json', tokenLength: 17 }
-  });
-  assert.equal('token' in resolved.summary, false, 'the summary must stay safe for logs');
-});
-
 test('resolveAccountCredential falls back to the pack-time local token for debug builds', async () => {
   const injected = { baseUrl: 'https://ai-cloud-test.rokid.com/prism/api', accountToken: 'injected-token' };
-  const resolved = await resolveAccountCredential({}, {}, injected);
+  const resolved = await resolveAccountCredential({}, injected);
   assert.deepEqual(resolved, {
     accountToken: 'injected-token',
     summary: { tokenType: 'local-token', tokenLength: 14 }
   });
-
-  // The env.json token wins over the injection when both exist.
-  const both = await resolveAccountCredential({ accountToken: 'env-token' }, {}, injected);
-  assert.equal(both.accountToken, 'env-token');
-  assert.equal(both.summary.tokenType, 'env.json');
+  assert.equal('token' in resolved.summary, false, 'the summary must stay safe for logs');
 
   // Without any local credential the original device error propagates.
   const refused = { requestDeviceToken: async () => Promise.reject(new Error('NotAllowedError')) };
   await assert.rejects(
-    resolveAccountCredential({}, refused, {}),
+    resolveAccountCredential(refused, {}),
     (error) => error.message === 'NotAllowedError'
   );
 });
@@ -149,15 +136,12 @@ test('pages and widgets resolve credentials through one helper; raw tokens stay 
   const pageSource = await readFile(new URL('../pages/index/index.js', import.meta.url), 'utf8');
   const widgetSource = await readFile(new URL('../lib/prism-widget-runtime.js', import.meta.url), 'utf8');
 
-  assert.match(pageSource, /resolveAccountCredential\(envConfig\)/);
+  assert.match(pageSource, /resolveAccountCredential\(\)/);
   assert.match(widgetSource, /resolveAccountCredential\(\)/);
   // Token values may only be read inside prism-device-auth.js's fallback.
   assert.doesNotMatch(pageSource, /config\.accountToken|LOCAL_DEBUG_AUTH\.accountToken/);
   assert.doesNotMatch(widgetSource, /LOCAL_DEBUG_AUTH\.accountToken/);
-  // Widgets never fetch the local env.json (the Ink runtime cannot).
-  assert.doesNotMatch(widgetSource, /loadPrismDebugAuth|env\.json/);
   for (const source of [pageSource, widgetSource]) {
     assert.doesNotMatch(source, /tokenPreview|credential\.token/);
-    assert.doesNotMatch(source, /PRISM_DEBUG_AUTH\.accessToken/);
   }
 });

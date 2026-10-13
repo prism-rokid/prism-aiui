@@ -1,12 +1,10 @@
 import wx from 'wx';
 import { createVoiceInput } from '../../lib/voice-input.js';
-import { createPrismApi, createStreamId, readableError } from '../../lib/prism-api.js';
+import { createPrismApi, createStreamId, readableError, PRODUCTION_API_BASE_URL } from '../../lib/prism-api.js';
 import { resolveAccountCredential } from '../../lib/prism-device-auth.js';
-import { PRISM_DEBUG_AUTH, loadPrismDebugAuth } from '../../lib/prism-debug-config.js';
 import { LOCAL_DEBUG_AUTH } from '../../lib/prism-local-token.js';
-import { createDebugSink } from '../../lib/prism-debug-log.js';
 import { renderFrame } from '../../lib/logo-scan.js';
-import { bindTraceSink, trace } from '../../lib/prism-trace.js';
+import { trace } from '../../lib/prism-trace.js';
 import { CHAT_BOTTOM_ANCHOR_IDS, chatTopSpacerStyle, buildChatProgressSegments, INITIAL_CHAT_ITEMS, INITIAL_CHAT_LAYOUT, INITIAL_CHAT_ANCHORS, INITIAL_CHAT_FOCUS_INDEX, INITIAL_CHAT_LOADED_START_INDEX, INITIAL_CHAT_LOADED_PROGRESS_INDEX, buildInitialChatState } from '../../lib/prism-chat-model.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 import { LIST_DEFAULT_VIEWPORT_HEIGHT, STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
@@ -18,12 +16,9 @@ import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
-import { isBetaExpired } from '../../lib/prism-expiry.js';
 
 // The page is assembled from method groups; see lib/prism-page-*.js. This
 // file owns the data contract, lifecycle wiring, and configuration hydration.
-const logSink = createDebugSink(wx, { url: PRISM_DEBUG_AUTH.logEndpoint, enabled: Boolean(PRISM_DEBUG_AUTH.logEndpoint) });
-bindTraceSink(logSink);
 
 const bootMethods = createBootMethods({ wx, renderFrame, readableError });
 const streamMethods = createStreamMethods({ createStreamId, readableError });
@@ -40,7 +35,6 @@ export default {
 
   data: {
     apiBaseUrl: '',
-    betaExpired: false,
     pollInterval: 3000,
     connected: false,
     configured: false,
@@ -163,15 +157,6 @@ export default {
       chatFocusId: initialChatState.chatAnchors[initialChatState.chatFocusIndex] || '',
       lastMessageId: 'message-welcome'
     });
-    // Beta deadline: once passed, the page renders only the expiry notice. No
-    // configuration, recognition, timers, menu, or bootstrap may run after it,
-    // and onHide/onUnload stay safe because their fields guard on null.
-    if (isBetaExpired()) {
-      trace('page.load.beta_expired');
-      this.setData({ betaExpired: true });
-      this._pageActive = true;
-      return;
-    }
     this._pageActive = true;
     this._api = null;
     this._pollTimer = null;
@@ -294,41 +279,36 @@ export default {
     const pollInterval = Number(this.data.pollInterval) || 3000;
     this._clientInstanceId = createStreamId('client');
     this.setData({ pollInterval, configured: false });
-    // The credential comes from the device credential flow; a browser
-    // preview without the Ink navigator falls back to the gitignored
-    // env.json token, and a real-device debug build to the pack-time
-    // injection (lib/prism-local-token.js). Production builds see neither.
-    return loadPrismDebugAuth()
-      .then((envConfig) => {
-        const apiBaseUrl = LOCAL_DEBUG_AUTH.baseUrl || envConfig.baseUrl;
-        this.setData({ apiBaseUrl, configured: false });
-        if (!apiBaseUrl) {
-          trace('config.hydrate.complete', {
-            configured: false,
-            tokenConfigured: false,
-            pollInterval,
-            clientInstanceId: this._clientInstanceId
-          });
-          return false;
-        }
-        return resolveAccountCredential(envConfig)
-          .then(({ accountToken, summary: tokenSummary }) => {
-            if (this._pageActive === false) return false;
-            this._api = createPrismApi(wx, {
-              baseUrl: apiBaseUrl,
-              accountToken,
-              onLog: (level, text) => logSink.push(level, text)
-            });
-            this.setData({ configured: true });
-            trace('config.hydrate.complete', {
-              configured: true,
-              tokenConfigured: true,
-              ...tokenSummary,
-              pollInterval,
-              clientInstanceId: this._clientInstanceId
-            });
-            return true;
-          });
+    // The credential comes from the device credential flow; a real-device
+    // debug build falls back to the pack-time injection
+    // (lib/prism-local-token.js). Production builds see neither.
+    const apiBaseUrl = LOCAL_DEBUG_AUTH.baseUrl || PRODUCTION_API_BASE_URL;
+    this.setData({ apiBaseUrl, configured: false });
+    if (!apiBaseUrl) {
+      trace('config.hydrate.complete', {
+        configured: false,
+        tokenConfigured: false,
+        pollInterval,
+        clientInstanceId: this._clientInstanceId
+      });
+      return Promise.resolve(false);
+    }
+    return resolveAccountCredential()
+      .then(({ accountToken, summary: tokenSummary }) => {
+        if (this._pageActive === false) return false;
+        this._api = createPrismApi(wx, {
+          baseUrl: apiBaseUrl,
+          accountToken
+        });
+        this.setData({ configured: true });
+        trace('config.hydrate.complete', {
+          configured: true,
+          tokenConfigured: true,
+          ...tokenSummary,
+          pollInterval,
+          clientInstanceId: this._clientInstanceId
+        });
+        return true;
       })
       .catch((error) => {
         if (this._pageActive === false) return false;

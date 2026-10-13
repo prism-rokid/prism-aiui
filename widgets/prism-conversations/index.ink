@@ -41,7 +41,6 @@ export default {
   onCreate() {
     this._runningIconTimer = null;
     this._runningSymbolIndex = 0;
-    this._expiredSeen = false;
     this._runtime = createWidgetRuntime(wx, {
       onSnapshot: (snapshot) => this.applySnapshot(snapshot)
     });
@@ -53,10 +52,7 @@ export default {
   },
 
   onAttach() {
-    // runtime.attach() flushes a pending expiry snapshot synchronously, so
-    // _expiredSeen is already set before the symbol timer would start.
     this._runtime.attach();
-    if (this._expiredSeen) return;
     if (!this._runningIconTimer) {
       this._runningIconTimer = setInterval(() => this.advanceRunningSymbol(), RUNNING_ICON_STEP_MS);
     }
@@ -75,14 +71,6 @@ export default {
   },
 
   applySnapshot(snapshot) {
-    if (snapshot.status === 'expired') {
-      // No decorative churn once the beta has ended.
-      this._expiredSeen = true;
-      if (this._runningIconTimer) clearInterval(this._runningIconTimer);
-      this._runningIconTimer = null;
-      this.setData({ loading: false, errorText: snapshot.errorText });
-      return;
-    }
     if (snapshot.status === 'error') {
       this.setData({ loading: false, errorText: snapshot.errorText });
       return;

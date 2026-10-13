@@ -249,34 +249,6 @@ button {
   color: var(--color-text-secondary);
   text-align: center;
 }
-/* Beta deadline notice: the only interactive-free surface left once the beta
-   has ended. Sits above every feature layer (the loading overlay is 30). */
-.prism-beta-expired {
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-md);
-  background-color: var(--color-background);
-}
-.prism-beta-expired-title {
-  font-family: sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--color-text-primary);
-  text-align: center;
-}
-.prism-beta-expired-hint {
-  font-family: sans-serif;
-  font-size: 16px;
-  line-height: 20px;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
 .prism-message { width: 100%; display: flex; flex-shrink: 0; flex-direction: column; }
 .prism-message-user { align-items: flex-end; margin-bottom: var(--spacing-md); }
 .prism-chat-row { width: 100%; display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-start; box-sizing: border-box; }

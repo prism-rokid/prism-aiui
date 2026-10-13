@@ -37,12 +37,11 @@ export function normalizeTarget(target) {
 export const LOCAL_TOKEN_TEMPLATE = `// Local debug credential slot — DO NOT put a real token here.
 //
 // This module is bundled into every package, so it is the one channel a
-// real-device debug build can rely on: the Ink runtime has no base URL for
-// \`fetch('./env.json')\`, so browser-preview-style overrides cannot load on
-// the glasses. \`npm run debug\` (dev/debug.mjs) temporarily writes the relay
-// target and your Prism account token here, packs, and immediately
-// restores the empty values below — the checked-in file never contains a
-// credential (tests enforce this).
+// real-device debug build can rely on: the Ink runtime has no way to load
+// external overrides on the glasses. \`npm run debug\` (dev/debug.mjs)
+// temporarily writes the relay target and your Prism account token here,
+// packs, and immediately restores the empty values below — the checked-in
+// file never contains a credential (tests enforce this).
 export const LOCAL_DEBUG_AUTH = Object.freeze({
   // Example of what \`npm run debug\` writes before packing (never commit):
   //   baseUrl: 'https://ai-cloud-test.rokid.com/prism/api',

@@ -20,17 +20,14 @@
 
 ```bash
 npm install
-npm test          # 170+ node:test cases, no device needed
+npm test          # node:test cases, no device needed
 ```
 
-1. Real-device debug: `npm run debug` (needs the
-   [@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
-   and an ADB-connected device with developer mode on). It injects the
-   account token from your Prism Hub login (`~/.prism/config.yaml`) into a
-   debug package, installs and launches it, then restores the sources.
-2. Browser-only preview: `aix preview .`; `dev/cors-proxy.mjs` plus a
-   gitignored `env.json` (`{ "baseUrl": "http://localhost:9100/prism/api",
-   "token": "<access_token>" }`) when the preview needs live data.
+Real-device debug: `npm run debug` (needs the
+[@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
+and an ADB-connected device with developer mode on). It injects the
+account token from your Prism Hub login (`~/.prism/config.yaml`) into a
+debug package, installs and launches it, then restores the sources.
 
 ### Code expectations
 
@@ -69,13 +66,10 @@ npm install
 npm test
 ```
 
-1. 真机调试：`npm run debug`（需要
-   [@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
-   和已开开发者模式的 ADB 设备）。脚本会把 Prism Hub 登录的账号 token
-   （`~/.prism/config.yaml`）注入调试包、安装启动，然后还原源码。
-2. 仅浏览器预览：`aix preview .`；预览要连真实数据时配
-   `dev/cors-proxy.mjs` 和 gitignored 的 `env.json`
-   （`{ "baseUrl": "http://localhost:9100/prism/api", "token": "<access_token>" }`）。
+真机调试：`npm run debug`（需要
+[@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
+和已开开发者模式的 ADB 设备）。脚本会把 Prism Hub 登录的账号 token
+（`~/.prism/config.yaml`）注入调试包、安装启动，然后还原源码。
 
 ### 代码要求
 

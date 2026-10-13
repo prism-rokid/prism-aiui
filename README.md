@@ -12,7 +12,7 @@ a host-issued device credential — no token is embedded, logged or stored.
 
 ## Features
 
-- Live conversations: NDJSON stream, Markdown, tool calls
+- Live conversations: NDJSON stream, tool calls
 - Voice input: tap to stop, long-press for the menu
 - Approvals; switch model, reasoning effort and permissions; stop anytime
 - Two home widgets: usage quotas, latest conversations
@@ -76,20 +76,18 @@ latest conversations) from the widget picker.
 
 ```bash
 npm install
-npm test          # 170+ node:test cases, no device needed
+npm test          # node:test cases, no device needed
 ```
 
 The real-device install loop lives in
 [Install & use](#install--use) above (`npm run debug`; `npm run pack`
-builds the clean production package). Browser-only checks:
-`aix preview .`. Start reading: `pages/index/index.js` →
+builds the clean production package). Start reading: `pages/index/index.js` →
 `lib/prism-api.js` → `lib/prism-widget-runtime.js`. Full guide:
 [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid. Vendored markdown
-libraries keep their own notices in [`lib/vendor/`](./lib/vendor/).
+[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid.
 
 ---
 
@@ -104,7 +102,7 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 
 ## 功能
 
-- 会话实时流：NDJSON 推送、Markdown 渲染、工具调用
+- 会话实时流：NDJSON 推送、工具调用
 - 语音输入：单击停止，长按呼出菜单
 - 审批处理；切换模型、推理强度、权限；随时打断
 - 两个桌面小组件：用量额度、最新会话
@@ -157,16 +155,14 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 
 ```bash
 npm install
-npm test          # 170+ 条测试，无需真机
+npm test          # node:test 测试，无需真机
 ```
 
 真机安装调试链路见上方[安装使用](#安装使用)（`npm run debug`；
-`npm run pack` 打干净的生产包）。仅浏览器速览：`aix preview .`。
-入门阅读：`pages/index/index.js` → `lib/prism-api.js` →
-`lib/prism-widget-runtime.js`。完整指南见
+`npm run pack` 打干净的生产包）。入门阅读：`pages/index/index.js` →
+`lib/prism-api.js` → `lib/prism-widget-runtime.js`。完整指南见
 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 ## 许可
 
-[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid。内嵌的 markdown 库在
-[`lib/vendor/`](./lib/vendor/) 保留各自许可。
+[PolyForm Noncommercial 1.0.0](./LICENSE) — © 2026 Rokid。

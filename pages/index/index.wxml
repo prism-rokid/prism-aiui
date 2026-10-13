@@ -159,10 +159,5 @@
           <text class="prism-loading-label" ink:else>{{text.common.loading}}</text>
         </view>
       </view>
-
-      <view class="prism-beta-expired" ink:if="{{betaExpired}}" role="status">
-        <text class="prism-beta-expired-title">{{text.boot.betaExpiredTitle}}</text>
-        <text class="prism-beta-expired-hint">{{text.boot.betaExpiredHint}}</text>
-      </view>
     </view>
   </view>

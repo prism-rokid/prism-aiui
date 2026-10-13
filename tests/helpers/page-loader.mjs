@@ -5,7 +5,7 @@
 // lib/prism-page-*.js method groups it lived in a single .ink file that the
 // same source-shape assertions scanned directly.)
 import { readFile } from 'node:fs/promises';
-import { bindTraceSink, trace } from '../../lib/prism-trace.js';
+import { trace } from '../../lib/prism-trace.js';
 import { setLocale, initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 import { buildInitialChatState } from '../../lib/prism-chat-model.js';
 import {
@@ -22,7 +22,6 @@ import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
-import { isBetaExpired } from '../../lib/prism-expiry.js';
 
 export const pageJsUrl = new URL('../../pages/index/index.js', import.meta.url);
 export const pageWxmlUrl = new URL('../../pages/index/index.wxml', import.meta.url);
@@ -32,7 +31,7 @@ const libUrls = [
   'prism-inbox-model.js', 'prism-surfaces.js', 'prism-gesture.js',
   'prism-page-boot.js', 'prism-page-sync.js', 'prism-page-stream.js',
   'prism-page-menu.js', 'prism-page-voice.js', 'prism-page-input.js',
-  'prism-i18n.js', 'prism-expiry.js'
+  'prism-i18n.js'
 ].map((name) => new URL(`../../lib/${name}`, import.meta.url));
 const packUrls = ['zh-CN'].map((name) => new URL(`../../lib/i18n/${name}.js`, import.meta.url));
 
@@ -70,14 +69,12 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     createPrismApi: () => ({}),
     createStreamId: () => 'stream-id',
     readableError: (error) => String(error && error.message || error || ''),
-    describeDeviceCredential: () => ({}),
-    formatDeviceAccountToken: () => 'device-token',
-    requestDeviceCredential: async () => ({ account_token: 'device-token' }),
-    PRISM_DEBUG_AUTH: { baseUrl: '', logEndpoint: '' },
-    loadPrismDebugAuth: async () => ({ baseUrl: '', logEndpoint: '' }),
-    createDebugSink: () => ({ push() {} }),
+    PRODUCTION_API_BASE_URL: '',
+    LOCAL_DEBUG_AUTH: { baseUrl: '', accountToken: '' },
+    resolveAccountCredential: async () => {
+      throw new Error('no device credential in Node');
+    },
     renderFrame: undefined,
-    bindTraceSink,
     trace,
     CHAT_BOTTOM_ANCHOR_IDS,
     chatTopSpacerStyle,
@@ -98,7 +95,6 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     createMenuMethods,
     createVoiceMethods,
     inputMethods,
-    isBetaExpired,
     initI18n,
     t,
     buildTextMap,

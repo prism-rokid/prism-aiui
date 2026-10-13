@@ -45,7 +45,6 @@ export default {
   onCreate() {
     this._candidates = [];
     this._carouselTimer = null;
-    this._expiredSeen = false;
     this._runtime = createWidgetRuntime(wx, {
       onSnapshot: (snapshot) => this.applySnapshot(snapshot)
     });
@@ -58,10 +57,7 @@ export default {
   },
 
   onAttach() {
-    // runtime.attach() flushes a pending expiry snapshot synchronously, so
-    // _expiredSeen is already set before the carousel timer would start.
     this._runtime.attach();
-    if (this._expiredSeen) return;
     if (!this._carouselTimer) {
       this._carouselTimer = setInterval(() => this.advanceUsageAgent(), CAROUSEL_INTERVAL_MS);
     }
@@ -80,14 +76,6 @@ export default {
   },
 
   applySnapshot(snapshot) {
-    if (snapshot.status === 'expired') {
-      // No decorative churn once the beta has ended.
-      this._expiredSeen = true;
-      if (this._carouselTimer) clearInterval(this._carouselTimer);
-      this._carouselTimer = null;
-      this.setData({ loading: false, errorText: snapshot.errorText });
-      return;
-    }
     if (snapshot.status === 'error') {
       this.setData({ loading: false, errorText: snapshot.errorText });
       return;

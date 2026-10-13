@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { agentIconFor, createPrismApi, createStreamId, readableError } from '../lib/prism-api.js';
-import { PRISM_DEBUG_AUTH } from '../lib/prism-debug-config.js';
+import { agentIconFor, createPrismApi, createStreamId, readableError, PRODUCTION_API_BASE_URL } from '../lib/prism-api.js';
 import { setLocale } from '../lib/prism-i18n.js';
 
 // Pin zh-CN: readableError assertions expect Chinese mappings and Node's
@@ -52,11 +51,9 @@ test('device credentials preserve the Prism X-Account-Token header key', async (
   assert.equal(requestOptions.header.Authorization, undefined);
 });
 
-test('debug configuration contains no embedded authentication token', () => {
-  assert.equal(PRISM_DEBUG_AUTH.accessToken, undefined);
-  assert.equal(PRISM_DEBUG_AUTH.baseUrl, 'https://ai-cloud.rokid.com/prism/api');
-  assert.equal(PRISM_DEBUG_AUTH.logEndpoint, '');
-  assert.doesNotMatch(JSON.stringify(PRISM_DEBUG_AUTH), /localhost|127\.0\.0\.1/);
+test('packaged builds default to the production gateway, with no local override', () => {
+  assert.equal(PRODUCTION_API_BASE_URL, 'https://ai-cloud.rokid.com/prism/api');
+  assert.doesNotMatch(PRODUCTION_API_BASE_URL, /localhost|127\.0\.0\.1/);
 });
 
 test('send message uses content field and glasses source device', async () => {

@@ -1,8 +1,9 @@
 import wx from 'wx';
 import { createVoiceInput } from '../../lib/voice-input.js';
 import { createPrismApi, createStreamId, readableError } from '../../lib/prism-api.js';
-import { describeDeviceCredential, formatDeviceAccountToken, requestDeviceCredential } from '../../lib/prism-device-auth.js';
+import { resolveAccountCredential } from '../../lib/prism-device-auth.js';
 import { PRISM_DEBUG_AUTH, loadPrismDebugAuth } from '../../lib/prism-debug-config.js';
+import { LOCAL_DEBUG_AUTH } from '../../lib/prism-local-token.js';
 import { createDebugSink } from '../../lib/prism-debug-log.js';
 import { renderFrame } from '../../lib/logo-scan.js';
 import { bindTraceSink, trace } from '../../lib/prism-trace.js';
@@ -132,7 +133,7 @@ export default {
   onLoad() {
     // Build marker: grep this tag in logcat to confirm which build the page
     // instance is actually serving.
-    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261011-opensource-prod' }));
+    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261013-realdevice-debug' }));
     trace('page.load.start', { surface: this.data.surface });
     wx.setBackgroundColor({ backgroundColor: '#000000' });
     // Locale first: every later label read (welcome message, menu, hints)
@@ -293,12 +294,13 @@ export default {
     const pollInterval = Number(this.data.pollInterval) || 3000;
     this._clientInstanceId = createStreamId('client');
     this.setData({ pollInterval, configured: false });
-    // Only the API base URL may come from the local environment override
-    // (lib/prism-debug-config.js); the credential always comes from the
-    // device credential flow below.
+    // The credential comes from the device credential flow; a browser
+    // preview without the Ink navigator falls back to the gitignored
+    // env.json token, and a real-device debug build to the pack-time
+    // injection (lib/prism-local-token.js). Production builds see neither.
     return loadPrismDebugAuth()
       .then((envConfig) => {
-        const apiBaseUrl = envConfig.baseUrl;
+        const apiBaseUrl = LOCAL_DEBUG_AUTH.baseUrl || envConfig.baseUrl;
         this.setData({ apiBaseUrl, configured: false });
         if (!apiBaseUrl) {
           trace('config.hydrate.complete', {
@@ -309,12 +311,8 @@ export default {
           });
           return false;
         }
-        return requestDeviceCredential()
-          .then((credential) => ({
-            accountToken: formatDeviceAccountToken(credential),
-            tokenSummary: describeDeviceCredential(credential)
-          }))
-          .then(({ accountToken, tokenSummary }) => {
+        return resolveAccountCredential(envConfig)
+          .then(({ accountToken, summary: tokenSummary }) => {
             if (this._pageActive === false) return false;
             this._api = createPrismApi(wx, {
               baseUrl: apiBaseUrl,

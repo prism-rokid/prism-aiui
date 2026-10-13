@@ -6,7 +6,8 @@
   "main": "app.js",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "pack": "node scripts/pack-project.mjs"
+    "pack": "node scripts/pack-project.mjs",
+    "debug": "node dev/debug.mjs"
   },
   "devDependencies": {
     "@yodaos-pkg/ink": "0.14.0"

@@ -18,8 +18,48 @@ a host-issued device credential — no token is embedded, logged or stored.
 - Two home widgets: usage quotas, latest conversations
 - 简体中文 · 繁體中文 · English · 日本語
 
-## Build your own
+## Install & use
 
+1. **Desktop** — download and sign in to
+   [Prism Hub](https://prism.rokid.com/?download=1), then connect your
+   coding agents through their plugins.
+2. **Glasses — CLI install over a data cable (currently recommended)** —
+   the panel is not yet on the agent store. You need the glasses' USB
+   data cable and a desktop already signed in to Prism Hub (step 1).
+   Connect the glasses to this computer (authorize ADB debugging when
+   prompted), then run in this repo:
+
+   ```bash
+   npm install -g @yodaos-pkg/aix-cli   # once
+   aix device set-dev                   # once per device
+   npm run debug
+   ```
+
+   `npm run debug` binds your Rokid account to the glasses, installs the
+   panel and opens it.
+3. **Agent store (coming soon)** — once published, install Prism Panel
+   (棱镜面板) from the agent store on the glasses instead; no cable
+   needed.
+
+Open the panel from the launcher to follow conversations, dictate
+messages and handle approvals; add the two home widgets (usage quotas,
+latest conversations) from the widget picker.
+
+## Restrictions
+
+- The cloud relays configured in this repo are Rokid infrastructure, not
+  part of the open-source grant. AIUI apps built from this code must not
+  use them, and must not be published to the Rokid Agent Store while
+  configured to use them, without written authorization from Rokid.
+- The relay addresses are for personal use only, installed via the local
+  debug flow. Packages uploaded to AIUI Studio cannot use them.
+- The code is for **non-commercial use only** — [LICENSE](./LICENSE).
+  Commercial licensing: contact Rokid.
+
+## Contribute & extend
+
+- **Issues & pull requests welcome** — bug reports, ideas and fixes. One
+  concern per PR; `npm test` must pass. Guide: [CONTRIBUTING.md](./CONTRIBUTING.md).
 - **Connect a new agent to Prism** — write a plugin with the
   [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk).
   No changes needed here; the panel lists it automatically.
@@ -32,34 +72,19 @@ a host-issued device credential — no token is embedded, logged or stored.
 > ⚠️ **Do not point your own app at the Prism relay servers.** See
 > [Restrictions](#restrictions).
 
-## Restrictions
-
-- The cloud relays configured in this repo (`ai-cloud.rokid.com`,
-  `ai-cloud-test.rokid.com`) are Rokid infrastructure, not part of the
-  open-source grant. AIUI apps built from this code must not use them, and
-  must not be published to the Rokid Agent Store while configured to use
-  them, without written authorization from Rokid.
-- The code is for **non-commercial use only** — [LICENSE](./LICENSE).
-  Commercial licensing: contact Rokid.
-
-## Develop
+### Dev loop
 
 ```bash
 npm install
-npm test          # 160+ node:test cases, no device needed
-npm run pack
+npm test          # 170+ node:test cases, no device needed
 ```
 
-Import into [Craft](https://js.rokid.com) and preview `pages/index/index`
-(480×352 viewport). Packaged builds target production; for the test gateway
-add a gitignored `env.json` in the repo root:
-
-```json
-{ "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }
-```
-
-Start reading: `pages/index/index.js` → `lib/prism-api.js` →
-`lib/prism-widget-runtime.js`. Full guide: [CONTRIBUTING.md](./CONTRIBUTING.md).
+The real-device install loop lives in
+[Install & use](#install--use) above (`npm run debug`; `npm run pack`
+builds the clean production package). Browser-only checks:
+`aix preview .`. Start reading: `pages/index/index.js` →
+`lib/prism-api.js` → `lib/prism-widget-runtime.js`. Full guide:
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
@@ -85,8 +110,40 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 - 两个桌面小组件：用量额度、最新会话
 - 简体中文 · 繁體中文 · English · 日本語
 
-## 做你自己的
+## 安装使用
 
+1. **桌面端**：下载并登录 [Prism Hub](https://prism.rokid.com/?download=1)，
+   通过插件连接你的编程 Agent。
+2. **眼镜端——数据线 CLI 安装（当前推荐）**：面板尚未上架智能体商店。
+   你需要：眼镜配套数据线、已在桌面端登录 Prism Hub 的电脑（见第 1 步）。
+   用数据线将眼镜连接到电脑（提示时授权 ADB 调试），然后在仓库目录执行：
+
+   ```bash
+   npm install -g @yodaos-pkg/aix-cli   # 一次性
+   aix device set-dev                   # 每台设备一次
+   npm run debug
+   ```
+
+   `npm run debug` 会把你的 Rokid 账号绑定到眼镜，安装棱镜面板并打开。
+3. **智能体商店（待上架）**：上架后可直接在眼镜的智能体商店安装
+   棱镜面板，无需数据线。
+
+从桌面启动器打开面板，跟进会话、语音输入、处理审批；在小组件挑选器里
+添加两个桌面小组件（用量额度、最新会话）。
+
+## 限制
+
+- 仓库里配置的中继服务器是 Rokid 的基础设施，**不在开源授权范围内**。
+  基于本仓库开发的 AIUI 应用不得使用这些服务器；未经 Rokid 书面授权，
+  不得将连接这些服务器的应用上架到智能体商店。
+- 中继服务器地址仅限个人使用，通过本地调试方式安装。如上传到
+  AIUI Studio，则无法使用。
+- 本仓库代码**仅限非商业使用**，见 [LICENSE](./LICENSE)。商用授权请联系 Rokid。
+
+## 贡献与二次开发
+
+- **欢迎提交 issue 或 PR**：bug 反馈、功能建议与修复。一个 PR 一件事，
+  `npm test` 需全绿。指南见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 - **给 Prism 接新 Agent**：用
   [PluginBridge SDK](https://github.com/prism-rokid/prism-plugin-sdk) 写插件，
   本面板零改动自动展示。
@@ -94,28 +151,17 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
   换掉 API 客户端（`lib/prism-api.js`）接你自己的后端，复用与后端无关的部分：
   设备凭据流程、NDJSON 流客户端、触控手势层、小组件运行时、多语言核心。
 
-> ⚠️ **不要让你自己的应用连接 Prism 中继服务器**，见下方限制。
+> ⚠️ **不要让你自己的应用连接 Prism 中继服务器**，见上方限制。
 
-## 限制
-
-- 仓库里配置的中继服务器（`ai-cloud.rokid.com`、`ai-cloud-test.rokid.com`）
-  是 Rokid 的基础设施，**不在开源授权范围内**。基于本仓库开发的 AIUI 应用不得
-  使用这些服务器；未经 Rokid 书面授权，不得将连接这些服务器的应用上架到智能体
-  商店。
-- 本仓库代码**仅限非商业使用**，见 [LICENSE](./LICENSE)。商用授权请联系 Rokid。
-
-## 开发
+### 开发流程
 
 ```bash
 npm install
-npm test          # 160+ 条测试，无需真机
-npm run pack
+npm test          # 170+ 条测试，无需真机
 ```
 
-用 [Craft](https://js.rokid.com) 导入并预览 `pages/index/index`（480×352 视口）。
-打包默认连正式环境；本地连测试网关在根目录放 gitignored 的 `env.json`
-（`{ "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }`）。
-
+真机安装调试链路见上方[安装使用](#安装使用)（`npm run debug`；
+`npm run pack` 打干净的生产包）。仅浏览器速览：`aix preview .`。
 入门阅读：`pages/index/index.js` → `lib/prism-api.js` →
 `lib/prism-widget-runtime.js`。完整指南见
 [CONTRIBUTING.md](./CONTRIBUTING.md)。

@@ -5,7 +5,8 @@ import test from 'node:test';
 import {
   describeDeviceCredential,
   formatDeviceAccountToken,
-  requestDeviceCredential
+  requestDeviceCredential,
+  resolveAccountCredential
 } from '../lib/prism-device-auth.js';
 
 test('caches a device credential in memory and refreshes it after expiry', async () => {
@@ -103,23 +104,60 @@ test('rejects malformed device token credentials', async () => {
   );
 });
 
-test('the index page and the shared widget runtime acquire runtime credentials instead of reading a configured token', async () => {
-  const pageSources = await Promise.all([
-    readFile(new URL('../pages/index/index.js', import.meta.url), 'utf8'),
-    readFile(new URL('../lib/prism-widget-runtime.js', import.meta.url), 'utf8')
-  ]);
+test('resolveAccountCredential prefers the device credential over the local token', async () => {
+  const runtimeNavigator = {
+    requestDeviceToken: async () => ({ token: 'opaque-device-token', tokenType: 'Bearer' })
+  };
+  const resolved = await resolveAccountCredential({ accountToken: 'local-debug-token' }, runtimeNavigator);
+  assert.deepEqual(resolved, {
+    accountToken: 'opaque-device-token',
+    summary: { tokenType: 'Bearer', tokenLength: 19 }
+  });
+});
 
-  for (const page of pageSources) {
-    assert.match(page, /requestDeviceCredential\(\)/);
-    assert.match(page, /formatDeviceAccountToken\(credential\)/);
-    assert.match(page, /describeDeviceCredential\(credential\)/);
-    assert.doesNotMatch(page, /describeLocalPrismDebugAuth|env\.json/);
-    assert.doesNotMatch(page, /tokenPreview|credential\.token/);
-    assert.doesNotMatch(page, /authorization:\s*formatDeviceAuthorization/);
-    assert.doesNotMatch(page, /PRISM_DEBUG_AUTH\.accessToken/);
+test('resolveAccountCredential falls back to the env.json token only without an Ink navigator', async () => {
+  const resolved = await resolveAccountCredential({ accountToken: '  local-debug-token  ' }, {});
+  assert.deepEqual(resolved, {
+    accountToken: 'local-debug-token',
+    summary: { tokenType: 'env.json', tokenLength: 17 }
+  });
+  assert.equal('token' in resolved.summary, false, 'the summary must stay safe for logs');
+});
+
+test('resolveAccountCredential falls back to the pack-time local token for debug builds', async () => {
+  const injected = { baseUrl: 'https://ai-cloud-test.rokid.com/prism/api', accountToken: 'injected-token' };
+  const resolved = await resolveAccountCredential({}, {}, injected);
+  assert.deepEqual(resolved, {
+    accountToken: 'injected-token',
+    summary: { tokenType: 'local-token', tokenLength: 14 }
+  });
+
+  // The env.json token wins over the injection when both exist.
+  const both = await resolveAccountCredential({ accountToken: 'env-token' }, {}, injected);
+  assert.equal(both.accountToken, 'env-token');
+  assert.equal(both.summary.tokenType, 'env.json');
+
+  // Without any local credential the original device error propagates.
+  const refused = { requestDeviceToken: async () => Promise.reject(new Error('NotAllowedError')) };
+  await assert.rejects(
+    resolveAccountCredential({}, refused, {}),
+    (error) => error.message === 'NotAllowedError'
+  );
+});
+
+test('pages and widgets resolve credentials through one helper; raw tokens stay inside it', async () => {
+  const pageSource = await readFile(new URL('../pages/index/index.js', import.meta.url), 'utf8');
+  const widgetSource = await readFile(new URL('../lib/prism-widget-runtime.js', import.meta.url), 'utf8');
+
+  assert.match(pageSource, /resolveAccountCredential\(envConfig\)/);
+  assert.match(widgetSource, /resolveAccountCredential\(\)/);
+  // Token values may only be read inside prism-device-auth.js's fallback.
+  assert.doesNotMatch(pageSource, /config\.accountToken|LOCAL_DEBUG_AUTH\.accountToken/);
+  assert.doesNotMatch(widgetSource, /LOCAL_DEBUG_AUTH\.accountToken/);
+  // Widgets never fetch the local env.json (the Ink runtime cannot).
+  assert.doesNotMatch(widgetSource, /loadPrismDebugAuth|env\.json/);
+  for (const source of [pageSource, widgetSource]) {
+    assert.doesNotMatch(source, /tokenPreview|credential\.token/);
+    assert.doesNotMatch(source, /PRISM_DEBUG_AUTH\.accessToken/);
   }
-  // The page may load the local env.json override for the API base URL only;
-  // widgets always use the packaged default and never read the local token.
-  assert.doesNotMatch(pageSources[0], /config\.accountToken/);
-  assert.doesNotMatch(pageSources[1], /loadPrismDebugAuth/);
 });

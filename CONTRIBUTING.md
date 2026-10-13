@@ -20,23 +20,26 @@
 
 ```bash
 npm install
-npm test          # 160+ node:test cases, no device needed
-npm run pack
+npm test          # 170+ node:test cases, no device needed
 ```
 
-1. Import into [Craft](https://js.rokid.com), preview `pages/index/index`
-   (480×352 viewport).
-2. Browser preview: `node dev/cors-proxy.mjs` (`PROXY_TARGET` overrides the
-   relay target).
-3. Production is the default. For the test gateway, add a gitignored
-   `env.json`: `{ "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }`.
+1. Real-device debug: `npm run debug` (needs the
+   [@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
+   and an ADB-connected device with developer mode on). It injects the
+   account token from your Prism Hub login (`~/.prism/config.yaml`) into a
+   debug package, installs and launches it, then restores the sources.
+2. Browser-only preview: `aix preview .`; `dev/cors-proxy.mjs` plus a
+   gitignored `env.json` (`{ "baseUrl": "http://localhost:9100/prism/api",
+   "token": "<access_token>" }`) when the preview needs live data.
 
 ### Code expectations
 
 - `pages/index/index.js` is a thin composition root; behavior belongs in
   `lib/prism-page-*.js` method groups or pure lib modules.
 - Never log or persist credentials — device tokens live in memory only
-  (`lib/prism-device-auth.js`); tests enforce this.
+  (`lib/prism-device-auth.js`); the debug-injection slot
+  (`lib/prism-local-token.js`) stays empty in the repository. Tests
+  enforce both.
 - Widgets share `lib/prism-widget-runtime.js`; don't duplicate polling/auth
   per widget.
 - Tests for anything observable; the pure builders in `lib/*-model.js` and
@@ -64,21 +67,23 @@ By submitting a PR you license your contribution under this repository's
 ```bash
 npm install
 npm test
-npm run pack
 ```
 
-1. [Craft](https://js.rokid.com) 导入仓库，预览 `pages/index/index`
-   （480×352 视口）。
-2. 浏览器联调：`node dev/cors-proxy.mjs`（`PROXY_TARGET` 切换目标网关）。
-3. 默认连正式环境；连测试网关放 gitignored 的 `env.json`：
-   `{ "baseUrl": "https://ai-cloud-test.rokid.com/prism/api" }`。
+1. 真机调试：`npm run debug`（需要
+   [@yodaos-pkg/aix-cli](https://www.npmjs.com/package/@yodaos-pkg/aix-cli)
+   和已开开发者模式的 ADB 设备）。脚本会把 Prism Hub 登录的账号 token
+   （`~/.prism/config.yaml`）注入调试包、安装启动，然后还原源码。
+2. 仅浏览器预览：`aix preview .`；预览要连真实数据时配
+   `dev/cors-proxy.mjs` 和 gitignored 的 `env.json`
+   （`{ "baseUrl": "http://localhost:9100/prism/api", "token": "<access_token>" }`）。
 
 ### 代码要求
 
 - `pages/index/index.js` 只是组合根；行为写进 `lib/prism-page-*.js` 或纯 lib
   模块。
 - 绝不记录或持久化凭据——设备 token 仅存内存
-  （`lib/prism-device-auth.js`），测试会校验。
+  （`lib/prism-device-auth.js`）；调试注入槽位（`lib/prism-local-token.js`）
+  在仓库里恒为空。测试会校验这两条。
 - 小组件共享 `lib/prism-widget-runtime.js`，轮询/鉴权不要重复实现。
 - 可观察的行为都要有测试；`lib/*-model.js`、`lib/widget-data.js` 是纯函数，
   最好下手。

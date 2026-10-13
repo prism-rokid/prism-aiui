@@ -66,8 +66,8 @@ export default {
     currentAgentName: 'Agent',
     currentAgentIcon: '',
     hostLabel: '未连接',
-    threadTitle: '棱镜面板',
-    threadTitleDisplay: '棱镜面板',
+    threadTitle: 'Prism 棱镜面板',
+    threadTitleDisplay: 'Prism 棱镜面板',
     // Populated with buildTextMap() in onLoad; WXML binds text.* for every
     // locale-dependent label.
     text: {},

@@ -23,9 +23,10 @@ a host-issued device credential — no token is embedded, logged or stored.
 ## Install & use
 
 1. **Desktop** — download and sign in to
-   [Prism Hub](https://prism.rokid.com/?download=1), then connect your
+    [Prism Hub](https://prism.rokid.com)，then connect your
    coding agents through their plugins.
-2. **Glasses — CLI install over a data cable (currently recommended)** —
+2. **Glasses app**: Search for "Prism Panel" in the agent store and add it (not yet supported in the overseas version).
+3. **Glasses develop — CLI install over a data cable (currently recommended)** —
    the panel is not yet on the agent store, and there is no prebuilt
    package to download: the install always builds from the full source of
    this repository. You need the glasses' USB
@@ -43,9 +44,9 @@ a host-issued device credential — no token is embedded, logged or stored.
 
    `npm run debug` binds your Rokid account to the glasses, installs the
    panel and opens it.
-3. **Agent store (coming soon)** — once published, install **Prism 棱镜面板**
+4. **Agent store (coming soon)** — once published, install **Prism 棱镜面板**
    from the agent store on the glasses instead; no cable needed.
-4. **Open on RokidGlasses** — say **“Open Prism.”** to open the panel.
+5. **Open on RokidGlasses** — say **“Open Prism.”** to open the panel.
    For Chinese voice commands, say **“打开棱镜面板。”**.
 
 Open the panel from the launcher to follow conversations, dictate
@@ -119,9 +120,10 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 
 ## 安装使用
 
-1. **桌面端**：下载并登录 [Prism Hub](https://prism.rokid.com/?download=1)，
+1. **桌面端**：下载并登录 [Prism Hub](https://prism.rokid.com)，
    通过插件连接你的编程 Agent。
-2. **眼镜端——数据线 CLI 安装（当前推荐）**：面板尚未上架智能体商店，
+2. **眼镜端**：在智能体商店搜索「棱镜面板」并添加（海外版暂不支持）
+3. **眼镜端开发——数据线 CLI 安装（当前推荐）**：面板尚未上架智能体商店，
    也没有可下载的预编译包——安装始终从本仓库的完整源码构建。你
    需要：眼镜配套数据线、已在桌面端登录 Prism Hub 的电脑（见第 1 步）。
    用数据线将眼镜连接到电脑（提示时授权 ADB 调试），然后克隆源码并执行：
@@ -135,9 +137,9 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
    ```
 
    `npm run debug` 会把你的 Rokid 账号绑定到眼镜，安装 Prism 棱镜面板并打开。
-3. **智能体商店（待上架）**：上架后可直接在眼镜的智能体商店安装
+4. **智能体商店（待上架）**：上架后可直接在眼镜的智能体商店安装
    **Prism 棱镜面板**，无需数据线。
-4. **在 RokidGlasses 上打开**：说 **“打开棱镜面板。”** 即可打开面板；
+5. **在 RokidGlasses 上打开**：说 **“打开棱镜面板。”** 即可打开面板；
    使用英文口令时说 **“Open Prism.”**。
 
 从桌面启动器打开面板，跟进会话、语音输入、处理审批；在小组件挑选器里

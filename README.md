@@ -34,25 +34,6 @@ Open the panel from the launcher to follow conversations, dictate
 messages and handle approvals; add the two home widgets (usage quotas,
 latest conversations) from the widget picker.
 
-4. **Glasses develop — CLI install over a data cable (currently recommended)** —
-   the panel is not yet on the agent store, and there is no prebuilt
-   package to download: the install always builds from the full source of
-   this repository. You need the glasses' USB
-   data cable and a desktop already signed in to Prism Hub (step 1).
-   Connect the glasses to this computer (authorize ADB debugging when
-   prompted), then clone the source and run:
-
-   ```bash
-   git clone https://github.com/prism-rokid/prism-aiui.git
-   cd prism-aiui
-   npm install -g @yodaos-pkg/aix-cli   # once
-   aix device set-dev                   # once per device
-   npm run debug
-   ```
-
-   `npm run debug` binds your Rokid account to the glasses, installs the
-   panel and opens it.
-
 
 ## Restrictions
 
@@ -82,7 +63,25 @@ latest conversations) from the widget picker.
 > [Restrictions](#restrictions).
 
 ### Dev loop
+**Glasses develop — CLI install over a data cable (currently recommended)** —
+   the panel is not yet on the agent store, and there is no prebuilt
+   package to download: the install always builds from the full source of
+   this repository. You need the glasses' USB
+   data cable and a desktop already signed in to Prism Hub (step 1).
+   Connect the glasses to this computer (authorize ADB debugging when
+   prompted), then clone the source and run:
 
+   ```bash
+   git clone https://github.com/prism-rokid/prism-aiui.git
+   cd prism-aiui
+   npm install -g @yodaos-pkg/aix-cli   # once
+   aix device set-dev                   # once per device
+   npm run debug
+   ```
+
+   `npm run debug` binds your Rokid account to the glasses, installs the
+   panel and opens it.
+   
 ```bash
 npm install
 npm test          # node:test cases, no device needed
@@ -123,7 +122,7 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 
 1. **桌面端**：下载并登录 [Prism Hub](https://prism.rokid.com)，
    通过插件连接你的编程 Agent。
-2. **智能体商店**：上架后可直接在眼镜的智能体商店安装
+2. **智能体商店**：可直接在眼镜的智能体商店安装
    **Prism 棱镜面板**，无需数据线。
 3. **在 RokidGlasses 上打开**：说 **“打开棱镜面板。”** 即可打开面板；
    使用英文口令时说 **“Open Prism.”**。
@@ -131,7 +130,19 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
 从桌面启动器打开面板，跟进会话、语音输入、处理审批；在小组件挑选器里
 添加两个桌面小组件（用量额度、最新会话）。
 
-4. **眼镜端开发——数据线 CLI 安装（当前推荐）**：面板尚未上架智能体商店，
+
+## 限制
+
+- 仓库里配置的中继服务器是 Rokid 的基础设施，**不在开源授权范围内**。
+  基于本仓库开发的 AIUI 应用不得使用这些服务器；未经 Rokid 书面授权，
+  不得将连接这些服务器的应用上架到智能体商店。
+- 中继服务器地址仅限个人使用，通过本地调试方式安装。如上传到
+  AIUI Studio，则无法使用。
+- 本仓库代码**仅限非商业使用**，见 [LICENSE](./LICENSE)。商用授权请联系 Rokid。
+
+## 贡献与二次开发
+
+- **眼镜端开发——数据线 CLI 安装（当前推荐）**：面板尚未上架智能体商店，
    也没有可下载的预编译包——安装始终从本仓库的完整源码构建。你
    需要：眼镜配套数据线、已在桌面端登录 Prism Hub 的电脑（见第 1 步）。
    用数据线将眼镜连接到电脑（提示时授权 ADB 调试），然后克隆源码并执行：
@@ -145,18 +156,6 @@ Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据�
    ```
 
    `npm run debug` 会把你的 Rokid 账号绑定到眼镜，安装 Prism 棱镜面板并打开。
-
-## 限制
-
-- 仓库里配置的中继服务器是 Rokid 的基础设施，**不在开源授权范围内**。
-  基于本仓库开发的 AIUI 应用不得使用这些服务器；未经 Rokid 书面授权，
-  不得将连接这些服务器的应用上架到智能体商店。
-- 中继服务器地址仅限个人使用，通过本地调试方式安装。如上传到
-  AIUI Studio，则无法使用。
-- 本仓库代码**仅限非商业使用**，见 [LICENSE](./LICENSE)。商用授权请联系 Rokid。
-
-## 贡献与二次开发
-
 - **欢迎提交 issue 或 PR**：bug 反馈、功能建议与修复。一个 PR 一件事，
   `npm test` 需全绿。指南见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 - **给 Prism 接新 Agent**：用

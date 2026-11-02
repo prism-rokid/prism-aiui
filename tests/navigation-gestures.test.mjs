@@ -393,10 +393,10 @@ test('stopping the recording opens the send menu, and swiping there never activa
   await sleep(30);
   assert.equal(page.data.surface, 'menu', 'stopping lands on the send menu');
   assert.equal(page.data.menuVisible, true);
-  assert.deepEqual(page.data.menuButtons.map((button) => button.id), ['send', 'voice', 'undo'],
-    'the send menu offers 发送 / 语音输入 / 撤销输入');
-  assert.equal(page.data.menuButtons[1].label, '语音输入');
-  assert.equal(page.data.menuButtons[1].showLabel, true, '语音输入 is focused and labeled after stopping');
+  assert.deepEqual(page.data.menuButtons.map((button) => button.id), ['voice', 'send', 'undo'],
+    'the send menu offers 语音输入 / 发送 / 撤销输入');
+  assert.equal(page.data.menuButtons[1].label, '发送');
+  assert.equal(page.data.menuButtons[1].showLabel, true, '发送 is focused and labeled after stopping');
   assert.equal(page.data.focusIndex, 1);
   assert.equal(page.data.listening, false);
   assert.equal(page.data.recognizing, false);
@@ -404,7 +404,7 @@ test('stopping the recording opens the send menu, and swiping there never activa
   // Arrow steps inside the send menu move focus without ever firing the option.
   page.sendDraft = async () => { sendCalls += 1; };
   pressArrow(page);
-  assert.equal(page.data.focusIndex, 2, 'the arrow step moved focus from 语音输入 to 撤销输入');
+  assert.equal(page.data.focusIndex, 2, 'the arrow step moved focus from 发送 to 撤销输入');
   assert.equal(page.data.surface, 'menu', 'arrow navigation must not activate the focused option');
   assert.equal(sendCalls, 0, 'send never fired from an arrow step');
 

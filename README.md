@@ -10,13 +10,14 @@ approvals and check quotas from your glasses.
 
 Chain: **glasses (this panel) → Prism Cloud → Prism Hub (desktop) → plugin →
 agent** (Codex, Claude Code, Hermes, OpenClaw, ...). The panel signs in with
-a host-issued device credential — no token is embedded, logged or stored.
+the host-managed Open Service account token — no token is embedded, logged or stored.
 
 ## Features
 
 - Live conversations: NDJSON stream, tool calls
-- Voice input: tap to stop, long-press for the menu
-- Approvals; switch model, reasoning effort and permissions; stop anytime
+- Voice input: VAD upload gating with fallback, tap to stop with immediate processing feedback
+- Approvals and question replies, including dictated custom answers confirmed before sending
+- Switch model, reasoning effort and permissions; stop anytime
 - Two home widgets: usage quotas, latest conversations
 - 简体中文 · 繁體中文 · English · 日本語
 
@@ -107,14 +108,15 @@ Rokid AI 眼镜上的官方 Prism 客户端。编程 Agent 留在桌面干活，
 ![](docs/screenshot.jpg)
 
 链路：**眼镜（本面板）→ Prism 云端 → 桌面 Prism Hub → 插件 → Agent**（Codex、
-Claude Code、Hermes、OpenClaw……）。面板用宿主签发的设备凭据登录，源码、日志、
+Claude Code、Hermes、OpenClaw……）。面板用宿主管理的 Open Service 账号 token 登录，源码、日志、
 磁盘里都不会出现 token。
 
 ## 功能
 
 - 会话实时流：NDJSON 推送、工具调用
-- 语音输入：单击停止，长按呼出菜单
-- 审批处理；切换模型、推理强度、权限；随时打断
+- 语音输入：VAD 上传门控与兼容降级，单击停止后立即显示识别状态
+- 审批与问题回复；支持语音输入自定义回答，确认后发送
+- 切换模型、推理强度、权限；随时打断
 - 两个桌面小组件：用量额度、最新会话
 - 简体中文 · 繁體中文 · English · 日本語
 

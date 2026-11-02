@@ -35,7 +35,7 @@ test('API client targets the host-plugin route model and unwraps the envelope', 
   assert.equal(request.responseType, 'text');
 });
 
-test('device credentials preserve the Prism X-Account-Token header key', async () => {
+test('account tokens preserve the Prism X-Account-Token header key', async () => {
   let requestOptions = null;
   const api = createPrismApi(mockWx((options) => {
     requestOptions = options;
@@ -190,6 +190,7 @@ test('conversation state stream uses fetch and decodes NDJSON frames', async () 
       'https://prism.example/user/remote/state-stream?scope=conversation&host_id=host-1&plugin_id=codex.automation&conversation_id=remote%3Aabc'
     );
     assert.equal(fetchCall.init.method, 'GET');
+    assert.equal(fetchCall.init.timeout, 1800000, 'state streams must not inherit the host 5-second request deadline');
     assert.equal(fetchCall.init.headers['X-Prism-State-Stream-Id'], streamId);
     assert.equal(fetchCall.init.headers['X-Prism-Client-Instance-Id'], 'client-1');
     assert.equal(fetchCall.init.headers['X-Account-Token'], 'token-1');

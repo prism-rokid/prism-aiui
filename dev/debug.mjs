@@ -227,16 +227,16 @@ export const LOCAL_DEBUG_AUTH = Object.freeze({
   console.log(`[debug] Package ready: ${packagePath}`);
 
   console.log('[debug] Enabling developer mode ...');
-  await run(aix, [...serialArgs, 'device', 'set-dev']);
+  await run(aix, ['device', 'set-dev', ...serialArgs]);
 
   const definition = path.join(path.dirname(packagePath), 'definition.json');
-  const installArgs = [...serialArgs, 'install', packagePath];
+  const installArgs = ['install', packagePath, ...serialArgs];
   if (await fs.access(definition).then(() => true, () => false)) installArgs.push('--definition', definition);
   console.log('[debug] Installing to device ...');
   await run(aix, installArgs);
 
   console.log('[debug] Opening the panel page ...');
-  await run(aix, [...serialArgs, 'launch-page', packagePath, 'pages/index/index']);
+  await run(aix, ['launch-page', packagePath, 'pages/index/index', ...serialArgs]);
   console.log('[debug] Done. Logs: adb logcat -s Ink');
 }
 

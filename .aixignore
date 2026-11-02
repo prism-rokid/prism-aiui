@@ -1,27 +1,52 @@
-# Version control and local metadata
-.git/**
+# Repository metadata and local developer state
+.git/
 .gitignore
 .aixignore
+.aix/
+.agents/
+.github/
+.zcode/
+.mastergo/
 **/.DS_Store
 /env.json
+
+# Development tools, tests and dependencies
 /scripts/
-
-# AI-assisted development and design snapshots
-.agents/
-.mastergo/
-
-# Development-only documentation and tests
-docs/**
-tests/
-dev/**
-README.md
+/dev/
+/tests/
+node_modules/
+coverage/
 package.json
+package-lock.json
 skills-lock.json
 
-# Local build outputs and dependency caches
-node_modules/**
-coverage/**
-dist/**
-build/**
-*.aix
+# Documentation and reference images (keep the runtime agent manifest)
+/docs/
+**/*.md
+!AGENTS.md
+**/*.pdf
+**/*.doc
+**/*.docx
+**/*.ppt
+**/*.pptx
+LICENSE
 VERSION
+
+# Screenshots and raster images; runtime SVG icons remain included
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.heic
+**/*.bmp
+**/*.tif
+**/*.tiff
+
+# Build outputs and temporary files
+dist/
+build/
+**/*.aix
+**/*.log
+**/*.tmp
+**/*.bak

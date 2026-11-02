@@ -15,6 +15,7 @@ import { syncMethods } from '../../lib/prism-page-sync.js';
 import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
+import { questionMethods } from '../../lib/prism-page-question.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
 
 // The page is assembled from method groups; see lib/prism-page-*.js. This
@@ -32,6 +33,7 @@ export default {
   ...menuMethods,
   ...voiceMethods,
   ...inputMethods,
+  ...questionMethods,
 
   data: {
     apiBaseUrl: '',
@@ -105,6 +107,10 @@ export default {
     runSummary: '',
     taskId: '',
     lastRunError: '',
+    questionActions: [],
+    questionText: '',
+    questionReply: '',
+    questionPending: false,
     approvalActions: [],
     approvalText: 'Agent 请求批准操作',
     primaryAction: 'send',
@@ -127,7 +133,7 @@ export default {
   onLoad() {
     // Build marker: grep this tag in logcat to confirm which build the page
     // instance is actually serving.
-    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261013-realdevice-debug' }));
+    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261025-readable-interactions' }));
     trace('page.load.start', { surface: this.data.surface });
     wx.setBackgroundColor({ backgroundColor: '#000000' });
     // Locale first: every later label read (welcome message, menu, hints)
@@ -261,10 +267,20 @@ export default {
   },
 
   onShow() {
+    if (this._pageHidden) {
+      this._pageHidden = false;
+      if (this._api && this.data.configured) {
+        this.startPolling();
+        if (this.data.selectedConversationId) this.openConversationStream();
+      }
+    }
     this.syncLoadingVisuals();
   },
 
   onHide() {
+    this._pageHidden = true;
+    this.stopPolling();
+    this.closeConversationStream();
     this.cancelPendingRecognitionStart('page_hidden');
     if (this._recognition) this._recognition.abort();
     this._recognitionActive = false;
@@ -279,9 +295,8 @@ export default {
     const pollInterval = Number(this.data.pollInterval) || 3000;
     this._clientInstanceId = createStreamId('client');
     this.setData({ pollInterval, configured: false });
-    // The credential comes from the device credential flow; a real-device
-    // debug build falls back to the pack-time injection
-    // (lib/prism-local-token.js). Production builds see neither.
+    // Shared auth uses Open Service, then the pack-time token injected only
+    // into real-device debug builds.
     const apiBaseUrl = LOCAL_DEBUG_AUTH.baseUrl || PRODUCTION_API_BASE_URL;
     this.setData({ apiBaseUrl, configured: false });
     if (!apiBaseUrl) {

@@ -37,6 +37,7 @@
             <view ink:for="{{visibleChatItems}}" ink:key="key" id="{{item.anchorId}}" class="{{item.className}}">
               <view class="prism-user-bubble" ink:if="{{item.kind === 'user'}}">
                 <view class="prism-user-bubble-body">
+                  <text class="prism-interaction-title" ink:if="{{item.interactionTitle}}">{{item.interactionTitle}}</text>
                   <text class="prism-user-copy">{{item.content}}</text>
                   <text class="prism-message-status" ink:if="{{item.statusLabel}}">{{item.statusLabel}}</text>
                 </view>
@@ -103,6 +104,16 @@
         </view>
       </view>
 
+      <view class="prism-approval-panel prism-question-panel" ink:if="{{surface === 'question'}}" role="navigation">
+        <text>{{questionText}}</text>
+        <text class="prism-muted" ink:if="{{questionReply}}">{{questionReply}}</text>
+        <scroll-view class="prism-question-list" scroll-y="true" scroll-into-view="{{'question-action-' + focusIndex}}">
+          <view class="prism-question-actions">
+            <button ink:for="{{questionActions}}" ink:key="id" id="question-action-{{item.idx}}" tabindex="0" data-index="{{item.idx}}" class="{{item.className}}" bindtap="handleQuestionTap">{{item.label}}</button>
+          </view>
+        </scroll-view>
+      </view>
+
       <view class="prism-bottom-stack">
         <view class="prism-draft" ink:if="{{draftText || listening || recognizing}}">
           <text ink:if="{{draftText}}">{{draftText}}</text>
@@ -113,8 +124,9 @@
           <block ink:if="{{surface === 'voice'}}">
             <!-- Keep the existing stop-menu gesture and focus behavior. -->
             <view ink:for="{{menuButtons}}" ink:key="id" data-index="{{item.idx}}" class="{{item.className}}" bindtap="handleMenuTap">
-              <image class="prism-icon-14 prism-lucide-icon" src="{{item.icon}}" />
-              <text ink:if="{{item.showLabel}}">{{item.label}}</text>
+              <lottie-view ink:if="{{recognizing}}" src="../../assets/voice-processing.json" class="prism-icon-14" auto-play="true" loop="true"></lottie-view>
+              <image ink:else class="prism-icon-14 prism-lucide-icon" src="{{item.icon}}" />
+              <text ink:if="{{item.showLabel}}">{{recognizing ? voiceHint : item.label}}</text>
             </view>
           </block>
           <block ink:else>

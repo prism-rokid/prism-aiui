@@ -361,7 +361,7 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
     const items = instance.rebuildInbox();
     assert.deepEqual(items.map((item) => item.conversation_id), ['c-new', 'c-mid', 'c-old']);
     assert.deepEqual(items.map((item) => item.groupLabel), ['今天', '', '昨天']);
-    assert.deepEqual(items.map((item) => item.offsetTop), [24, 68, 136]);
+    assert.deepEqual(items.map((item) => item.offsetTop), [24, 72, 144]);
     assert.equal(items[0].id, 'inbox:host-1::codex:c-new');
     assert.equal(items[0].icon, '../../assets/icons/agent_icon/icon_agent_codex.svg');
     assert.equal(items[1].icon, '../../assets/icons/agent_icon/icon_agent_claude.svg');
@@ -416,20 +416,20 @@ test('inbox focus scrolling accounts for day-group headers', async () => {
 
     const items = instance.rebuildInbox('inbox:host-1::codex:c-earlier');
     assert.equal(instance.data.focusIndex, 3);
-    // Content: [今天 hdr] row row [昨天 hdr] row [更早之前 hdr] row = 248px.
+    // Content includes a 4px gap after each conversation row.
     assert.deepEqual(items.map((item) => item.groupLabel), ['今天', '', '昨天', '更早之前']);
-    assert.deepEqual(items.map((item) => item.offsetTop), [24, 68, 136, 204]);
-    // Viewport 208px: the focused bottom row ends at 248. Scrolling to 40
+    assert.deepEqual(items.map((item) => item.offsetTop), [24, 72, 144, 216]);
+    // Viewport 208px: the focused bottom row ends at 260. Scrolling to 52
     // would cut the 今天二 row in half, so the list snaps to the next block
-    // edge (68, the top of 今天二) and the top row stays whole.
-    assert.equal(instance.data.inboxScrollTop, 68);
+    // edge (72, the top of 今天二) and the top row stays whole.
+    assert.equal(instance.data.inboxScrollTop, 72);
 
     // Crossing midnight re-buckets rows on the periodic time refresh: the
     // same rows relabel to 昨天/更早之前 and the offsets follow the new headers.
     Date.now = () => now + 13 * 3600 * 1000;
     instance.refreshInboxTimeLabels();
     assert.deepEqual(instance.data.inboxItems.map((item) => item.groupLabel), ['昨天', '', '更早之前', '']);
-    assert.deepEqual(instance.data.inboxItems.map((item) => item.offsetTop), [24, 68, 136, 180]);
+    assert.deepEqual(instance.data.inboxItems.map((item) => item.offsetTop), [24, 72, 144, 192]);
   } finally {
     Date.now = realDateNow;
   }
@@ -650,7 +650,7 @@ test('menu never offers a 新消息 button in any state', async () => {
   instance.data.restoredDraft = '';
   instance.data.draftText = '输入中';
   instance.rebuildMenu();
-  assert.deepEqual(instance.data.menuButtons.map((item) => item.id), ['send', 'voice', 'undo']);
+  assert.deepEqual(instance.data.menuButtons.map((item) => item.id), ['voice', 'send', 'undo']);
   assert.equal(instance.data.menuButtons.some((item) => item.id === 'inbox'), false);
   assert.equal(instance.data.menuButtons.some((item) => item.id === 'agents'), false);
   assert.equal(instance.data.menuButtons.some((item) => item.id === 'threads'), false);
@@ -1724,8 +1724,8 @@ test('voice input appends to existing draft, undos step-by-step, redoes step-by-
   assert.equal(page.data.surface, 'menu');
   assert.equal(page.data.draftText, '帮我看下代码');
   assert.equal(page.data.restoredDraft, '');
-  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['send', 'voice', 'undo']);
-  assert.equal(page.data.focusIndex, 1, 'must focus on middle voice button, not left send button');
+  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['voice', 'send', 'undo']);
+  assert.equal(page.data.focusIndex, 1, 'must focus on middle send button, not left send button');
   assert.equal(page.data.menuButtons[1].showLabel, true);
 
   // 3. Second voice input: must not clear previous draft, must append
@@ -1737,14 +1737,14 @@ test('voice input appends to existing draft, undos step-by-step, redoes step-by-
   ScriptedRecognition.instance.onend();
   assert.equal(page.data.surface, 'menu');
   assert.equal(page.data.draftText, '帮我看下代码顺便跑下测试');
-  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['send', 'voice', 'undo']);
-  assert.equal(page.data.focusIndex, 1, 'must focus on middle voice button after second input as well');
+  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['voice', 'send', 'undo']);
+  assert.equal(page.data.focusIndex, 1, 'must focus on middle send button after second input as well');
 
   // 4. Step-by-step undo
   page.undoDraft();
   assert.equal(page.data.draftText, '帮我看下代码', 'first undo must revert the second voice input only');
   assert.equal(page.data.restoredDraft, '帮我看下代码顺便跑下测试');
-  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['send', 'voice', 'undo', 'redo']);
+  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['voice', 'send', 'undo', 'redo']);
 
   page.undoDraft();
   assert.equal(page.data.draftText, '', 'second undo must revert the first voice input');
@@ -1755,12 +1755,12 @@ test('voice input appends to existing draft, undos step-by-step, redoes step-by-
   page.redoDraft();
   assert.equal(page.data.draftText, '帮我看下代码', 'first redo must restore the first voice input');
   assert.equal(page.data.restoredDraft, '帮我看下代码顺便跑下测试');
-  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['send', 'voice', 'undo', 'redo']);
+  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['voice', 'send', 'undo', 'redo']);
 
   page.redoDraft();
   assert.equal(page.data.draftText, '帮我看下代码顺便跑下测试', 'second redo must restore the full draft');
   assert.equal(page.data.restoredDraft, '');
-  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['send', 'voice', 'undo']);
+  assert.deepEqual(page.data.menuButtons.map((b) => b.id), ['voice', 'send', 'undo']);
 
   // 6. Exiting the menu clears all draft content
   page.closeMenu();

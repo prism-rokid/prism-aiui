@@ -38,7 +38,7 @@ test('inbox scroll always lands on a row or header top edge', () => {
 
 test('stale unaligned scroll offsets snap back to a row edge', () => {
   const items = rows(Array.from({ length: 6 }, (_, index) => now - index * 60 * 1000));
-  // Rows start at 24, 68, 112...; 90 sits mid-row and must snap to 68.
-  assert.equal(inboxScrollTopForFocus(items, 3, 90, 208), 68);
+  // Rows start at 24, 72, 120...; 90 sits mid-row and must snap to 72.
+  assert.equal(inboxScrollTopForFocus(items, 3, 90, 208), 72);
   assert.equal(inboxScrollTopForFocus(items, 0, 90, 208), 0);
 });

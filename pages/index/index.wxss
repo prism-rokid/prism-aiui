@@ -430,7 +430,8 @@ block {
 .prism-inbox-list-content { width: 100%; display: flex; flex-direction: column; }
 /* Ink renders block as a real view; use an explicit vertical row wrapper so
    group headers add height above their conversation instead of sitting beside it. */
-.prism-inbox-row { width: 100%; display: flex; flex-direction: column; flex-shrink: 0; }
+/* Keep the item spacing in sync with INBOX_ITEM_GAP for focus scrolling. */
+.prism-inbox-row { width: 100%; display: flex; flex-direction: column; flex-shrink: 0; margin-bottom: 4px; }
 /* The header height must stay in lockstep with INBOX_GROUP_HEADER_HEIGHT:
    the focus scroll math treats it as a fixed row. */
 .prism-inbox-group { width: 100%; height: 24px; display: flex; flex-shrink: 0; flex-direction: row; align-items: flex-end; box-sizing: border-box; padding: 0 var(--spacing-md) 3px; }
@@ -504,3 +505,10 @@ block {
 .prism-layer-hidden {
   display: none;
 }
+
+/* Questionnaire uses the same chrome and focus buttons as approvals. */
+.prism-question-panel { max-height: 220px; }
+.prism-question-list { max-height: 140px; }
+.prism-question-actions { display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px; }
+
+.prism-interaction-title { display: block; font-weight: bold; margin-bottom: 6px; opacity: 0.75; }

@@ -46,7 +46,7 @@ test('native recorder streams 16kHz mono PCM frames into the latest ASR session'
     lang: 'zh-CN', interimResults: true,
     audio: { mimeType: 'audio/pcm', sampleRate: 16000, channelCount: 1, sampleFormat: 's16' }
   });
-  assert.deepEqual(f.calls[0], ['start', { sampleRate: 16000, numberOfChannels: 1, format: 'pcm', frameSize: 250 }]);
+  assert.deepEqual(f.calls[0], ['start', { sampleRate: 16000, numberOfChannels: 1, format: 'pcm', frameSize: 100, vad: { enabled: true, silenceDurationMs: 500 } }]);
   assert.equal(started, 1);
   f.recorder.frameHandler({ frameBuffer: new ArrayBuffer(8) });
   await flush();
@@ -89,4 +89,21 @@ test('unsupported PCM capabilities report a useful error instead of opening the 
   await f.voice.start();
   assert.deepEqual(errors, ['当前设备不支持 16kHz PCM 语音识别']);
   assert.equal(f.calls.length, 0);
+});
+
+test('blocked upload reports backpressure rather than final result timeout and releases recorder', async () => {
+  const f = fixture();
+  const errors = [];
+  f.voice.onerror = event => errors.push(event.message);
+  await f.voice.start();
+  let release;
+  f.sessions[0].writer.write = () => new Promise(resolve => { release = resolve; });
+  f.recorder.frameHandler({ frameBuffer: new ArrayBuffer(3200), voiceActive: true });
+  await flush();
+  for (let i = 0; i < 40; i++) f.recorder.frameHandler({ frameBuffer: new ArrayBuffer(3200), voiceActive: true });
+  assert.deepEqual(errors, ['语音上传阻塞，请检查眼镜网络后重试']);
+  assert.equal(f.calls.filter(([kind]) => kind === 'stop').length, 1);
+  assert.equal(f.calls.filter(([kind]) => kind === 'abort').length, 1);
+  release();
+  await flush();
 });

@@ -21,6 +21,7 @@ import { syncMethods } from '../../lib/prism-page-sync.js';
 import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
+import { questionMethods } from '../../lib/prism-page-question.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
 
 export const pageJsUrl = new URL('../../pages/index/index.js', import.meta.url);
@@ -31,7 +32,7 @@ const libUrls = [
   'prism-inbox-model.js', 'prism-surfaces.js', 'prism-gesture.js',
   'prism-page-boot.js', 'prism-page-sync.js', 'prism-page-stream.js',
   'prism-page-menu.js', 'prism-page-voice.js', 'prism-page-input.js',
-  'prism-i18n.js'
+  'prism-page-question.js', 'prism-question.js', 'prism-i18n.js'
 ].map((name) => new URL(`../../lib/${name}`, import.meta.url));
 const packUrls = ['zh-CN'].map((name) => new URL(`../../lib/i18n/${name}.js`, import.meta.url));
 
@@ -72,7 +73,7 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     PRODUCTION_API_BASE_URL: '',
     LOCAL_DEBUG_AUTH: { baseUrl: '', accountToken: '' },
     resolveAccountCredential: async () => {
-      throw new Error('no device credential in Node');
+      throw new Error('no Open Service credential in Node');
     },
     renderFrame: undefined,
     trace,
@@ -95,6 +96,7 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     createMenuMethods,
     createVoiceMethods,
     inputMethods,
+    questionMethods,
     initI18n,
     t,
     buildTextMap,

@@ -172,3 +172,100 @@ test('switching conversation while activation is pending cancels submission',asy
   assert.equal(p._questionPreparation,null);
   assert.equal(p._questionBusy,false);
 });
+
+test('canceling a dictated answer restores the original message draft',async()=>{
+  const p=await page();
+  p.data.draftText='尚未发送的消息';
+  p.data.restoredDraft='可恢复的消息';
+  p._draftHistory=['之前的消息'];
+  p._draftFuture=['可恢复的消息'];
+  p.startVoiceInput=()=>p.setData({surface:'voice',listening:true});
+  p._recognition={abort(){}};
+  p.applyQuestionDetail(surface());
+  await p.activateQuestionAction({id:'custom'});
+  p.data.draftText='取消的回答';
+  p.backOneLevel();
+  assert.equal(p.data.surface,'question');
+  assert.equal(p.data.draftText,'尚未发送的消息');
+  assert.equal(p.data.restoredDraft,'可恢复的消息');
+  assert.deepEqual(p._draftHistory,['之前的消息']);
+  assert.deepEqual(p._draftFuture,['可恢复的消息']);
+  assert.equal(p._questionAnswers[0].freeformText,'');
+});
+
+test('switching conversations discards the saved question voice draft',async()=>{
+  const p=await page();
+  p.data.draftText='旧会话的消息';
+  p.startVoiceInput=()=>p.setData({surface:'voice',listening:true});
+  p._recognition={abort(){}};
+  p.applyQuestionDetail(surface());
+  await p.activateQuestionAction({id:'custom'});
+  p.resetQuestionState();
+  assert.equal(p.data.draftText,'');
+  assert.equal(p._questionSavedDraft,null);
+  assert.deepEqual(p._draftHistory,[]);
+});
+
+test('a late response cannot complete a reopened question or release its new submission',async()=>{
+  const p=await page(),toasts=[];
+  p.showToast=text=>toasts.push(text);
+  const responses=[];
+  p._api.control=()=>new Promise(resolve=>responses.push(resolve));
+  p.applyQuestionDetail(surface());
+  await p.activateQuestionAction(p.data.questionActions[0]);
+  const old=p.submitQuestion(false);
+  await Promise.resolve();
+  p.resetQuestionState();
+  p.applyQuestionDetail(surface());
+  await p.activateQuestionAction(p.data.questionActions[1]);
+  const current=p.submitQuestion(false);
+  await Promise.resolve();
+  const operation=p._questionSubmission;
+  responses[0]({});
+  await old;
+  assert.equal(p.data.questionPending,true);
+  assert.equal(p.data.surface,'question');
+  assert.equal(p._questionSubmission,operation);
+  assert.equal(p._questionBusy,operation);
+  assert.equal(toasts.includes('答案已提交'),false);
+  responses[1]({});
+  await current;
+  assert.equal(p.data.questionPending,false);
+});
+
+test('submission rechecks connection, approval and page visibility after activation',async()=>{
+  for(const invalidate of [
+    p=>{p.data.connected=false},
+    p=>{p._approval={id:'approval'}},
+    p=>{p._pageHidden=true},
+    p=>{p._pageActive=false}
+  ]) {
+    const p=await page();
+    p.applyQuestionDetail(surface());
+    await p.activateQuestionAction(p.data.questionActions[0]);
+    p.prepareQuestionSubmission=async()=>invalidate(p);
+    await p.submitQuestion(false);
+    assert.equal(p.calls.length,0);
+    assert.equal(p._questionBusy,false);
+    assert.equal(p._questionSubmission,null);
+    assert.deepEqual(p._questionAnswers[0].selectedOptionIds,['0']);
+  }
+});
+
+test('submission never dispatches an action removed or replaced during activation',async()=>{
+  for(const update of [
+    s=>{s.actions=s.actions.filter(action=>action.purpose!=='skip_questions')},
+    s=>{s.actions[1].action_id='replacement:skip'},
+    s=>{s.actions[1].available=false}
+  ]) {
+    const p=await page();
+    p.applyQuestionDetail(surface());
+    p.prepareQuestionSubmission=async()=>{
+      const next=surface();update(next);p.applyQuestionDetail(next);
+    };
+    await p.submitQuestion(true);
+    assert.equal(p.calls.length,0);
+    assert.equal(p._questionBusy,false);
+    assert.equal(p.data.questionPending,true);
+  }
+});

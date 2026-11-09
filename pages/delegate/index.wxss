@@ -1,0 +1,111 @@
+/* 委托卡片：单色/全彩共用变量体系，_current 卡片容器高度自适应，
+   _blank 全屏时仅放大留白。 */
+
+.delegate-card {
+  --delegate-primary: var(--color-primary);
+  --delegate-muted: var(--color-primary-60, var(--color-primary));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  background-color: var(--color-background);
+  color: var(--delegate-primary);
+}
+
+.delegate-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.delegate-title {
+  font-family: sans-serif;
+  font-size: 18px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--delegate-primary);
+}
+
+.delegate-subtitle {
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--delegate-muted);
+}
+
+.delegate-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.delegate-steps {
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+}
+
+.delegate-step {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.delegate-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: var(--delegate-muted);
+  opacity: 0.35;
+}
+
+.delegate-dot-active {
+  opacity: 1;
+}
+
+.delegate-dot-done {
+  opacity: 0.9;
+}
+
+.delegate-step-label {
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--delegate-muted);
+  opacity: 0.55;
+}
+
+.delegate-step-label-active {
+  color: var(--delegate-primary);
+  opacity: 1;
+}
+
+.delegate-status {
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 18px;
+  color: var(--delegate-primary);
+}
+
+.delegate-result-text {
+  font-family: sans-serif;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.delegate-result-done {
+  color: var(--delegate-primary);
+}
+
+.delegate-result-error {
+  color: var(--delegate-muted);
+}
+
+@media (target: _blank) {
+  .delegate-card {
+    gap: 18px;
+    padding: 24px;
+  }
+}

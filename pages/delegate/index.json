@@ -1,0 +1,16 @@
+{
+  "navigationBarTitleText": "Prism 委托",
+  "description": "用户想把任务委托给远程开发智能体（CodeX、Claude Code、CodeBuddy、OpenClaw、Hermes 等）代为执行时返回此工具，例如“用棱镜把桌面上的文件夹放到回收站”“让CodeX清空回收站”。request 传入用户请求原文，不要改写。",
+  "schema": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "string",
+          "description": "用户的委托请求原文，例如“把桌面上的文件夹放到回收站”。"
+        }
+      },
+      "required": ["request"]
+    }
+  }
+}

@@ -1,8 +1,8 @@
 // 委托卡片：把用户请求原文交给端上语言模型理解，分派给远程智能体并发
-// 送。卡片只占两行（标题+状态/进度点一行，请求摘要或结果一行），充分节
-// 省对话流屏幕空间；boot 路径与桌面 Widget 一致（i18n → 设备认证 →
-// Prism API），LanguageModel 由运行时动态解析后注入调度器。文案与类名全
-// 部在 JS 预计算，WXML 只做简单绑定。
+// 送。状态展示走宿主原生 Agent Session Card（sendCard/updateCard，参考
+// diagnostic.agentsessioncards）：Ink 页面本身零渲染、只作为执行体，完成
+// 后 window.close()，对话流里只留下紧凑的原生卡片。原生卡片能力不可用
+// 时回退为页面内的两行紧凑 UI。
 
 import wx from 'wx';
 import { createPrismApi, PRODUCTION_API_BASE_URL, readableError } from '../../lib/prism-api.js';
@@ -22,9 +22,26 @@ function buildDots(stepIndex) {
   }));
 }
 
+function statusFor(phase, detail = {}) {
+  if (phase === 'done') {
+    const conversationLabel = detail.isNewConversation || !detail.conversationTitle
+      ? t('delegate.newConversation')
+      : detail.conversationTitle;
+    return t('delegate.done', { agent: detail.agent || '', conversation: conversationLabel });
+  }
+  if (phase === 'error') {
+    if (detail.code === 'noAgents') return t('delegate.noAgents');
+    if (detail.code === 'missingRequest') return t('delegate.missingRequest');
+    if (detail.code === 'authFailed') return detail.message || t('delegate.failed');
+    return t('delegate.failed');
+  }
+  return t(`delegate.${phase}`);
+}
+
 export default {
   data: {
     text: {},
+    fallbackVisible: false,
     requestText: '',
     requestClassName: 'delegate-request',
     statusVisible: true,
@@ -44,8 +61,23 @@ export default {
       statusText: t('delegate.understanding')
     });
     if (!requestText) {
+      this.enterFallback();
       this.applyPhase('error', { code: 'missingRequest' });
       return;
+    }
+
+    // 原生 Agent Session Card：先发一张初始状态卡，之后每阶段 update。
+    this._nativeCard = null;
+    try {
+      const conversation = getApp().getAgent().conversation;
+      this._nativeCard = await conversation.sendCard({
+        title: t('delegate.title'),
+        description: t('delegate.understanding')
+      });
+      console.log('[PrismDelegate]', JSON.stringify({ event: 'native_card.sent', id: this._nativeCard.id }));
+    } catch (error) {
+      console.warn('[PrismDelegate] native card unavailable', error && error.name, error && error.message);
+      this.enterFallback();
     }
 
     try {
@@ -85,33 +117,51 @@ export default {
     }
   },
 
+  enterFallback() {
+    if (this._destroyed) return;
+    this.setData({ fallbackVisible: true });
+  },
+
   applyPhase(phase, detail = {}) {
     if (this._destroyed) return;
-    if (phase === 'done') {
-      const conversationLabel = detail.isNewConversation || !detail.conversationTitle
-        ? t('delegate.newConversation')
-        : detail.conversationTitle;
+    const isFinal = phase === 'done' || phase === 'error';
+    const status = statusFor(phase, detail);
+
+    if (this._nativeCard) {
+      // 原生卡片承载全部状态；页面自身零渲染。
+      this._nativeCard.update({
+        title: t('delegate.title'),
+        description: isFinal ? status : `${status} · ${this.data.requestText}`
+      }).then(
+        () => {
+          if (!isFinal) return;
+          console.log('[PrismDelegate]', JSON.stringify({ event: 'native_card.final', phase }));
+          try { window.close(); } catch (error) { this.enterFallback(); }
+        },
+        (error) => {
+          console.warn('[PrismDelegate] native card update failed', error && error.name, error && error.message);
+          this.enterFallback();
+          this.renderFallback(phase, detail, status, isFinal);
+        }
+      );
+      return;
+    }
+
+    this.renderFallback(phase, detail, status, isFinal);
+  },
+
+  renderFallback(phase, detail, status, isFinal) {
+    if (this._destroyed) return;
+    this.enterFallback();
+    if (isFinal) {
       this.setData({
         statusVisible: false,
         dotsVisible: false,
         requestText: truncateDisplayText(
-          `✓ ${t('delegate.done', { agent: detail.agent || '', conversation: conversationLabel })}`,
+          `${phase === 'done' ? '✓' : '✕'} ${status}`,
           RESULT_TITLE_UNITS
         ),
-        requestClassName: 'delegate-request delegate-request-done'
-      });
-      return;
-    }
-    if (phase === 'error') {
-      const reason = detail.code === 'noAgents' ? t('delegate.noAgents')
-        : detail.code === 'missingRequest' ? t('delegate.missingRequest')
-        : detail.code === 'authFailed' ? (detail.message || t('delegate.failed'))
-        : t('delegate.failed');
-      this.setData({
-        statusVisible: false,
-        dotsVisible: false,
-        requestText: truncateDisplayText(`✕ ${reason}`, RESULT_TITLE_UNITS),
-        requestClassName: 'delegate-request delegate-request-error'
+        requestClassName: `delegate-request ${phase === 'done' ? 'delegate-request-done' : 'delegate-request-error'}`
       });
       return;
     }

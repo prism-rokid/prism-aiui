@@ -1,4 +1,4 @@
-<view class="delegate-card">
+<view class="delegate-card" ink:if="{{fallbackVisible}}">
   <view class="delegate-main-row">
     <text class="delegate-title">{{text.delegate.title}}</text>
     <text class="delegate-status" ink:if="{{statusVisible}}">{{statusText}}</text>

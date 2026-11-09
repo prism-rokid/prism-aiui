@@ -4,6 +4,9 @@
 .delegate-card {
   --delegate-primary: var(--color-primary);
   --delegate-muted: var(--color-primary-60, var(--color-primary));
+  /* 固定两行高度：标题行 18 + gap 4 + 摘要行 16 + 上下 padding 16。
+     宿主对卡片容器首量后不保证二次重排，固定高度让首帧量高即确定。 */
+  height: 54px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -11,6 +14,7 @@
   box-sizing: border-box;
   background-color: var(--color-background);
   color: var(--delegate-primary);
+  overflow: hidden;
 }
 
 .delegate-main-row {

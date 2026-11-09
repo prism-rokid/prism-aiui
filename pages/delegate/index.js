@@ -41,7 +41,9 @@ function statusFor(phase, detail = {}) {
 export default {
   data: {
     text: {},
-    fallbackVisible: false,
+    // 首帧即渲染紧凑内容，让宿主第一次量高就是实际高度（~54px），
+    // 避免先量出默认高度再依赖不可靠的二次重排。
+    fallbackVisible: true,
     requestText: '',
     requestClassName: 'delegate-request',
     statusVisible: true,
@@ -67,16 +69,14 @@ export default {
     }
 
     // 原生 Agent Session Card：先发一张初始状态卡，之后每阶段 update。
-    this._nativeCard = null;
+    // getAgent() 只在 App 上下文可用，因此经由 app.js 的包装方法调用。
+    this._nativeCard = false;
     try {
-      const conversation = getApp().getAgent().conversation;
-      this._nativeCard = await conversation.sendCard({
-        title: t('delegate.title'),
-        description: t('delegate.understanding')
-      });
-      console.log('[PrismDelegate]', JSON.stringify({ event: 'native_card.sent', id: this._nativeCard.id }));
+      await getApp().sendDelegateCard(t('delegate.title'), t('delegate.understanding'));
+      this._nativeCard = true;
+      console.log('[PrismDelegate]', JSON.stringify({ event: 'native_card.sent' }));
     } catch (error) {
-      console.warn('[PrismDelegate] native card unavailable', error && error.name, error && error.message);
+      console.warn('[PrismDelegate] native card unavailable', error && error.name, error && error.message, error && error.stack);
       this.enterFallback();
     }
 
@@ -129,10 +129,10 @@ export default {
 
     if (this._nativeCard) {
       // 原生卡片承载全部状态；页面自身零渲染。
-      this._nativeCard.update({
-        title: t('delegate.title'),
-        description: isFinal ? status : `${status} · ${this.data.requestText}`
-      }).then(
+      getApp().updateDelegateCard(
+        t('delegate.title'),
+        isFinal ? status : `${status} · ${this.data.requestText}`
+      ).then(
         () => {
           if (!isFinal) return;
           console.log('[PrismDelegate]', JSON.stringify({ event: 'native_card.final', phase }));

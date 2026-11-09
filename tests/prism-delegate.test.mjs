@@ -209,6 +209,16 @@ test('模型输出幻觉 id 时整体回退规则匹配', async () => {
   assert.equal(api.sends[0].payload.content, '让CodeX清空回收站');
 });
 
+test('云端 202 但 accepted:false 时如实报 sendFailed，不误报已委托', async () => {
+  const api = mockApi({ plugins: PLUGINS, itemsByPlugin: CONV_ITEMS });
+  api.sendMessage = async () => ({ request_id: 'r1', accepted: false, error_message: 'composer not ready' });
+  const model = mockModel(['{"conversation_id":"c-1","agent_key":"host-a::codex","message":"m","reason":""}']);
+  const events = await collectPhases(createDelegateRunner({ api, model }), '让CodeX清空回收站');
+  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'matching', 'sending', 'error']);
+  assert.equal(events[3].detail.code, 'sendFailed');
+  assert.match(events[3].detail.message, /composer not ready/);
+});
+
 test('没有可用 Agent 或发送失败时进入 error，且不重复发送', async () => {
   const emptyApi = mockApi({ plugins: [agent('offline', { connected: false })] });
   const emptyEvents = await collectPhases(createDelegateRunner({ api: emptyApi, model: null }), '随便');

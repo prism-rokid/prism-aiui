@@ -1,7 +1,8 @@
 // 委托卡片：把用户请求原文交给端上语言模型理解，分派给远程智能体并发
-// 送。卡片上只展示简略状态进度；boot 路径与桌面 Widget 一致（i18n → 设
-// 备认证 → Prism API），LanguageModel 由运行时动态解析后注入调度器。
-// 步骤类名/文案全部在 JS 预计算，WXML 只做简单绑定。
+// 送。卡片只占两行（标题+状态/进度点一行，请求摘要或结果一行），充分节
+// 省对话流屏幕空间；boot 路径与桌面 Widget 一致（i18n → 设备认证 →
+// Prism API），LanguageModel 由运行时动态解析后注入调度器。文案与类名全
+// 部在 JS 预计算，WXML 只做简单绑定。
 
 import wx from 'wx';
 import { createPrismApi, PRODUCTION_API_BASE_URL, readableError } from '../../lib/prism-api.js';
@@ -12,13 +13,12 @@ import { truncateDisplayText } from '../../lib/widget-data.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 
 const PHASE_STEP = { understanding: 0, matching: 1, sending: 2 };
-const SUBTITLE_TITLE_UNITS = 40;
+const REQUEST_TITLE_UNITS = 40;
+const RESULT_TITLE_UNITS = 40;
 
-function buildSteps(stepIndex) {
-  return ['understanding', 'matching', 'sending'].map((phase, index) => ({
-    label: t(`delegate.${phase}`),
-    dotClassName: index < stepIndex ? 'delegate-dot-done' : (index === stepIndex ? 'delegate-dot-active' : ''),
-    labelClassName: index <= stepIndex ? 'delegate-step-label-active' : ''
+function buildDots(stepIndex) {
+  return [0, 1, 2].map((index) => ({
+    className: index < stepIndex ? 'delegate-dot-done' : (index === stepIndex ? 'delegate-dot-active' : '')
   }));
 }
 
@@ -26,13 +26,11 @@ export default {
   data: {
     text: {},
     requestText: '',
-    progressVisible: true,
-    steps: [],
-    statusText: '',
-    resultVisible: false,
-    resultText: '',
-    resultMark: '✓',
-    resultClassName: 'delegate-result-done'
+    requestClassName: 'delegate-request',
+    statusVisible: true,
+    dotsVisible: true,
+    dots: [],
+    statusText: ''
   },
 
   async onLoad(query) {
@@ -41,8 +39,8 @@ export default {
     const requestText = String(query && query.request || '').trim();
     this.setData({
       text: buildTextMap(),
-      requestText: truncateDisplayText(requestText, SUBTITLE_TITLE_UNITS),
-      steps: buildSteps(PHASE_STEP.understanding),
+      requestText: truncateDisplayText(requestText, REQUEST_TITLE_UNITS),
+      dots: buildDots(PHASE_STEP.understanding),
       statusText: t('delegate.understanding')
     });
     if (!requestText) {
@@ -94,12 +92,13 @@ export default {
         ? t('delegate.newConversation')
         : detail.conversationTitle;
       this.setData({
-        progressVisible: false,
-        statusText: '',
-        resultVisible: true,
-        resultMark: '✓',
-        resultClassName: 'delegate-result-done',
-        resultText: t('delegate.done', { agent: detail.agent || '', conversation: conversationLabel })
+        statusVisible: false,
+        dotsVisible: false,
+        requestText: truncateDisplayText(
+          `✓ ${t('delegate.done', { agent: detail.agent || '', conversation: conversationLabel })}`,
+          RESULT_TITLE_UNITS
+        ),
+        requestClassName: 'delegate-request delegate-request-done'
       });
       return;
     }
@@ -109,16 +108,19 @@ export default {
         : detail.code === 'authFailed' ? (detail.message || t('delegate.failed'))
         : t('delegate.failed');
       this.setData({
-        progressVisible: false,
-        statusText: '',
-        resultVisible: true,
-        resultMark: '✕',
-        resultClassName: 'delegate-result-error',
-        resultText: reason
+        statusVisible: false,
+        dotsVisible: false,
+        requestText: truncateDisplayText(`✕ ${reason}`, RESULT_TITLE_UNITS),
+        requestClassName: 'delegate-request delegate-request-error'
       });
       return;
     }
     const stepIndex = PHASE_STEP[phase] || 0;
-    this.setData({ progressVisible: true, resultVisible: false, steps: buildSteps(stepIndex), statusText: t(`delegate.${phase}`) });
+    this.setData({
+      statusVisible: true,
+      dotsVisible: true,
+      dots: buildDots(stepIndex),
+      statusText: t(`delegate.${phase}`)
+    });
   }
 };

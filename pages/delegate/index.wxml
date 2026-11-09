@@ -1,20 +1,10 @@
 <view class="delegate-card">
-  <view class="delegate-head">
+  <view class="delegate-main-row">
     <text class="delegate-title">{{text.delegate.title}}</text>
-    <text class="delegate-subtitle" ink:if="{{requestText}}">{{requestText}}</text>
-  </view>
-
-  <view class="delegate-progress" ink:if="{{progressVisible}}">
-    <view class="delegate-steps">
-      <view ink:for="{{steps}}" ink:key="index" class="delegate-step">
-        <view class="delegate-dot {{item.dotClassName}}"></view>
-        <text class="delegate-step-label {{item.labelClassName}}">{{item.label}}</text>
-      </view>
+    <text class="delegate-status" ink:if="{{statusVisible}}">{{statusText}}</text>
+    <view class="delegate-dots" ink:if="{{dotsVisible}}">
+      <view ink:for="{{dots}}" ink:key="index" class="delegate-dot {{item.className}}"></view>
     </view>
-    <text class="delegate-status">{{statusText}}</text>
   </view>
-
-  <view class="delegate-result" ink:if="{{resultVisible}}">
-    <text class="delegate-result-text {{resultClassName}}">{{resultMark}} {{resultText}}</text>
-  </view>
+  <text class="delegate-request {{requestClassName}}" ink:if="{{requestText}}">{{requestText}}</text>
 </view>

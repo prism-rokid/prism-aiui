@@ -53,10 +53,11 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 6px;
 }
 
 .delegate-ind-line {
-  width: 12px;
+  width: 20px;
   height: 2px;
   background-color: var(--delegate-primary);
   opacity: 0.3;
@@ -74,10 +75,11 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  font-family: sans-serif;
-  font-size: 10px;
-  line-height: 14px;
-  text-align: center;
+}
+
+.delegate-ind-check {
+  width: 10px;
+  height: 10px;
 }
 
 .delegate-ind-dot-done {

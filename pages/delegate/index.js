@@ -109,7 +109,7 @@ export default {
       const done = index < stepIndex;
       const active = index === stepIndex;
       return {
-        mark: done ? '✓' : '',
+        done,
         className: done ? 'delegate-ind-dot-done' : (active ? 'delegate-ind-dot-active' : 'delegate-ind-dot-pending'),
         lineClassName: index > 0 && index <= stepIndex ? 'delegate-ind-line-done' : ''
       };

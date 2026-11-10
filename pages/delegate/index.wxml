@@ -1,4 +1,4 @@
-<view class="delegate-card">
+<view class="delegate-card" bindtap="onCardTap">
   <view class="delegate-head">
     <view class="delegate-brand">
       <image class="delegate-logo" src="../../assets/icons/prism-logo.svg" />
@@ -17,9 +17,5 @@
   <view class="delegate-body">
     <text class="delegate-step-title">{{stepTitle}}</text>
     <text class="delegate-step-content" ink:if="{{stepContent}}">{{stepContent}}</text>
-  </view>
-
-  <view class="delegate-enter {{enterClassName}}" ink:if="{{enterVisible}}" bindtap="openConversation">
-    <text class="delegate-enter-text">{{text.delegate.enterConversation}}</text>
   </view>
 </view>

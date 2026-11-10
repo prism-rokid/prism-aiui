@@ -126,29 +126,6 @@
   opacity: 0.5;
 }
 
-.delegate-enter {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  padding: 9px 0;
-  border: 1px solid var(--delegate-primary);
-  border-radius: 6px;
-}
-
-.delegate-enter-active {
-  opacity: 0.6;
-}
-
-.delegate-enter-text {
-  font-family: sans-serif;
-  font-size: 15px;
-  line-height: 18px;
-  font-weight: 600;
-  color: var(--delegate-primary);
-}
-
 @media (target: _blank) {
   .delegate-card {
     gap: 12px;
@@ -168,10 +145,5 @@
   .delegate-step-content {
     font-size: 16px;
     line-height: 22px;
-  }
-
-  .delegate-enter {
-    padding: 12px 0;
-    border-radius: 8px;
   }
 }

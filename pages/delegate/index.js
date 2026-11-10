@@ -2,8 +2,9 @@
 // （✓ 完成 / 圆环当前 / 实心待处理，短线相连），下方当前步骤标题 +
 // 50% 透明度内容。内容来源：前三步是调度器的 AI 流式分析文本，第四步
 // 起监视被委托会话的状态流，实时展示 Agent 流式回复，回复完成后进入
-// 第五步。全屏（_blank）态保留「进入对话」。文案与类名全部在 JS 预计
-// 算，WXML 只做简单绑定。
+// 第五步。委托受理（或失败已定位目标）后，点击卡片任意处直接进入面
+// 板对话页，无中间跳转页。文案与类名全部在 JS 预计算，WXML 只做简
+// 单绑定。
 
 import wx from 'wx';
 import { createPrismApi, PRODUCTION_API_BASE_URL, readableError } from '../../lib/prism-api.js';
@@ -15,7 +16,6 @@ import { truncateDisplayText } from '../../lib/widget-data.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 
 const STEP_KEYS = ['understanding', 'matching', 'sending', 'agentReplying', 'agentReplied'];
-const REQUEST_TITLE_UNITS = 40;
 const AI_DISPLAY_UNITS = 96;
 const REPLY_DISPLAY_UNITS = 110;
 
@@ -33,9 +33,7 @@ export default {
     text: {},
     indicators: [],
     stepTitle: '',
-    stepContent: '',
-    enterVisible: false,
-    enterClassName: 'delegate-enter'
+    stepContent: ''
   },
 
   async onLoad(query) {
@@ -77,13 +75,6 @@ export default {
   onUnload() {
     this._destroyed = true;
     if (this._watcher && typeof this._watcher.stop === 'function') this._watcher.stop();
-  },
-
-  // _current 卡片容器 / _blank 全屏承载切换时由宿主回调。
-  onTargetChanged(target) {
-    if (this._destroyed) return;
-    this.setData({ target });
-    this.updateEnterVisible();
   },
 
   async createApi() {
@@ -148,7 +139,6 @@ export default {
       // 委托消息刚落地、卡片侧才挂流的窗口。
       this._replySinceTs = Date.now() - 30000;
       this.enterStep(3, t('delegate.agentReplying'), '');
-      this.updateEnterVisible();
       void this.startReplyWatch();
       return;
     }
@@ -171,7 +161,6 @@ export default {
         stepTitle: t('delegate.failed'),
         stepContent: truncateDisplayText(reason, AI_DISPLAY_UNITS)
       });
-      this.updateEnterVisible();
     }
   },
 
@@ -205,7 +194,6 @@ export default {
         }
         conversationId = found.conversationId;
         target.conversationId = conversationId;
-        this.updateEnterVisible();
       }
       if (this._destroyed) return;
       this._watcher = watchAgentReply(this._api, {
@@ -222,7 +210,6 @@ export default {
           if (this._destroyed) return;
           this._replyText = truncateDisplayText(String(text || ''), REPLY_DISPLAY_UNITS);
           this.enterStep(4, t('delegate.agentReplied'), this._replyText);
-          this.updateEnterVisible();
         },
         onError: (message) => {
           if (this._destroyed) return;
@@ -235,23 +222,26 @@ export default {
     }
   },
 
-  updateEnterVisible() {
-    const enterVisible = this.data.target === '_blank'
-      && Boolean(this._delegateTarget)
-      && (this._phase === 'done' || this._phase === 'error'
-        || this._stepIndex >= 3);
-    if (enterVisible !== this.data.enterVisible) {
-      this.setData({ enterVisible });
-    }
+  // 点击卡片任意处直接进入面板对话页（卡片态/全屏态一致，无中间页）。
+  // 前三步调度未受理前忽略点击，避免打断进行中的委托。
+  onCardTap() {
+    const ready = this.canEnter();
+    console.log('[PrismDelegate]', JSON.stringify({ event: 'card.tap', ready }));
+    if (this._destroyed || !ready) return;
+    this.openConversation();
   },
 
-  // 全屏态「进入对话」：把远程选中切到被委托的会话，再进入面板。
-  // 面板启动时读取云端选中，即落在该智能体的对话页。
+  canEnter() {
+    return Boolean(this._delegateTarget)
+      && (this._phase === 'done' || this._phase === 'error' || this._stepIndex >= 3);
+  },
+
+  // 把远程选中切到被委托的会话，再进入面板；面板启动时读取云端选中，
+  // 即落在该智能体的对话页。
   async openConversation() {
     const target = this._delegateTarget;
     if (!target || this._opening) return;
     this._opening = true;
-    this.setData({ enterClassName: 'delegate-enter delegate-enter-active' });
     try {
       await this._api.setSelection({
         selected_host_id: target.hostId,

@@ -1,10 +1,30 @@
-<view class="delegate-card" ink:if="{{fallbackVisible}}">
-  <view class="delegate-main-row">
+<view class="delegate-card">
+  <view class="delegate-head">
     <text class="delegate-title">{{text.delegate.title}}</text>
-    <text class="delegate-status" ink:if="{{statusVisible}}">{{statusText}}</text>
-    <view class="delegate-dots" ink:if="{{dotsVisible}}">
-      <view ink:for="{{dots}}" ink:key="index" class="delegate-dot {{item.className}}"></view>
-    </view>
+    <text class="delegate-request-line">{{requestText}}</text>
   </view>
-  <text class="delegate-request {{requestClassName}}" ink:if="{{requestText}}">{{requestText}}</text>
+
+  <scroll-view class="delegate-scroll" scroll-y="true" scroll-into-view="{{scrollAnchorId}}">
+    <view class="delegate-steps">
+      <view ink:for="{{steps}}" ink:key="index" class="delegate-step">
+        <view class="delegate-dot {{item.className}}"></view>
+        <text class="delegate-step-label {{item.labelClassName}}">{{item.label}}</text>
+      </view>
+    </view>
+
+    <view class="delegate-stream" ink:if="{{streamText}}">
+      <text class="delegate-stream-label">{{text.delegate.aiReply}}</text>
+      <text class="delegate-stream-text">{{streamText}}</text>
+    </view>
+
+    <view ink:for="{{logs}}" ink:key="id" class="delegate-log">
+      <text class="delegate-log-text {{item.className}}">{{item.text}}</text>
+    </view>
+
+    <view id="{{endAnchorId}}" class="delegate-end-spacer"></view>
+  </scroll-view>
+
+  <view class="delegate-enter {{enterClassName}}" ink:if="{{enterVisible}}" bindtap="openConversation">
+    <text class="delegate-enter-text">{{text.delegate.enterConversation}}</text>
+  </view>
 </view>

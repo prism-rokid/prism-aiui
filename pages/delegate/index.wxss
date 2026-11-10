@@ -1,27 +1,26 @@
-/* 委托卡片：两行紧凑布局（标题+状态/进度点一行，请求摘要或结果一行），
-   单色/全彩共用变量体系，_blank 全屏时仅放大留白。 */
+/* 委托卡片（高卡形态）：填满宿主槽位（语音链路 BOUNDED ~168px，全屏
+   352px），内部 scroll-view 承载步骤、AI 流式回复与日志，自动滚到底；
+   全屏态额外提供「进入对话」。单色/全彩共用变量体系。 */
 
 .delegate-card {
   --delegate-primary: var(--color-primary);
   --delegate-muted: var(--color-primary-60, var(--color-primary));
-  /* 固定两行高度：标题行 18 + gap 4 + 摘要行 16 + 上下 padding 16。
-     宿主对卡片容器首量后不保证二次重排，固定高度让首帧量高即确定。 */
-  height: 54px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 10px 14px;
   box-sizing: border-box;
   background-color: var(--color-background);
   color: var(--delegate-primary);
-  overflow: hidden;
 }
 
-.delegate-main-row {
+.delegate-head {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .delegate-title {
@@ -30,21 +29,40 @@
   line-height: 18px;
   font-weight: 600;
   color: var(--delegate-primary);
+  flex-shrink: 0;
 }
 
-.delegate-status {
+.delegate-request-line {
   font-family: sans-serif;
   font-size: 13px;
   line-height: 16px;
-  color: var(--delegate-primary);
+  color: var(--delegate-muted);
+  overflow: hidden;
 }
 
-.delegate-dots {
+.delegate-scroll {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.delegate-steps {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
-  margin-left: auto;
+  gap: 14px;
+  padding: 2px 0 6px 0;
+  flex-shrink: 0;
+}
+
+.delegate-step {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
 }
 
 .delegate-dot {
@@ -63,24 +81,120 @@
   opacity: 0.85;
 }
 
-.delegate-request {
+.delegate-step-label {
   font-family: sans-serif;
   font-size: 13px;
   line-height: 16px;
   color: var(--delegate-muted);
+  opacity: 0.55;
 }
 
-.delegate-request-done {
+.delegate-step-label-active {
+  color: var(--delegate-primary);
+  opacity: 1;
+}
+
+.delegate-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px;
+  border-left: 2px solid var(--delegate-primary);
+  margin-bottom: 6px;
+}
+
+.delegate-stream-label {
+  font-family: sans-serif;
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--delegate-muted);
+  opacity: 0.75;
+}
+
+.delegate-stream-text {
+  font-family: sans-serif;
+  font-size: 14px;
+  line-height: 18px;
   color: var(--delegate-primary);
 }
 
-.delegate-request-error {
+.delegate-log {
+  display: flex;
+  flex-direction: row;
+  padding: 1px 0;
+}
+
+.delegate-log-text {
+  font-family: sans-serif;
+  font-size: 13px;
+  line-height: 17px;
   color: var(--delegate-muted);
+}
+
+.delegate-log-done {
+  color: var(--delegate-primary);
+  font-weight: 600;
+}
+
+.delegate-log-error {
+  color: var(--delegate-muted);
+}
+
+.delegate-end-spacer {
+  height: 2px;
+}
+
+.delegate-enter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 9px 0;
+  border: 1px solid var(--delegate-primary);
+  border-radius: 6px;
+}
+
+.delegate-enter-active {
+  opacity: 0.6;
+}
+
+.delegate-enter-text {
+  font-family: sans-serif;
+  font-size: 15px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--delegate-primary);
 }
 
 @media (target: _blank) {
   .delegate-card {
-    gap: 8px;
-    padding: 16px 20px;
+    gap: 10px;
+    padding: 18px 20px;
+  }
+
+  .delegate-title {
+    font-size: 17px;
+    line-height: 21px;
+  }
+
+  .delegate-request-line {
+    font-size: 14px;
+    line-height: 18px;
+  }
+
+  .delegate-stream-text {
+    font-size: 15px;
+    line-height: 20px;
+  }
+
+  .delegate-log-text {
+    font-size: 14px;
+    line-height: 19px;
+  }
+
+  .delegate-enter {
+    padding: 12px 0;
+    border-radius: 8px;
   }
 }

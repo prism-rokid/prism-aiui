@@ -43,15 +43,15 @@ function mockApi({ plugins, itemsByPlugin = {}, sends = [] } = {}) {
   };
 }
 
-function mockModel(outputs) {
+function mockModel(outputs, { streaming = false, chunks = 3 } = {}) {
   const queue = [...outputs];
-  const calls = { created: 0, prompts: [], destroyed: 0 };
+  const calls = { created: 0, prompts: [], deltas: [], destroyed: 0 };
   const model = {
     calls,
     availability: async () => 'available',
     create: async () => {
       calls.created += 1;
-      return {
+      const session = {
         prompt: async (input) => {
           calls.prompts.push(input);
           const next = queue.shift();
@@ -60,9 +60,43 @@ function mockModel(outputs) {
         },
         destroy: () => { calls.destroyed += 1; }
       };
+      if (streaming) {
+        session.promptStreaming = (input) => {
+          calls.prompts.push(input);
+          const next = queue.shift();
+          const pieces = next instanceof Error ? [] : splitChunks(next, chunks);
+          let index = 0;
+          return {
+            read: async () => {
+              if (next instanceof Error && index === 0) {
+                index += 1;
+                throw next;
+              }
+              if (index < pieces.length) {
+                const value = pieces[index];
+                index += 1;
+                return { done: false, value };
+              }
+              return { done: true, value: undefined };
+            }
+          };
+        };
+      }
+      return session;
     }
   };
   return model;
+}
+
+function splitChunks(text, pieces) {
+  const source = String(text || '');
+  if (!source) return [];
+  const size = Math.max(1, Math.ceil(source.length / pieces));
+  const out = [];
+  for (let index = 0; index < source.length; index += size) {
+    out.push(source.slice(index, index + size));
+  }
+  return out;
 }
 
 function collectPhases(runner, requestText) {
@@ -164,10 +198,11 @@ test('完整链路（模型可用）：按模型决策复用会话并发送改�
   const model = mockModel(['{"conversation_id":"c-1","agent_key":"host-a::codex","message":"请把桌面上的文件夹放到回收站","reason":"点名 CodeX"}']);
   const events = await collectPhases(createDelegateRunner({ api, model }), '用棱镜把桌面上的文件夹放到回收站');
 
-  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'matching', 'sending', 'done']);
-  assert.equal(events[3].detail.agent, 'codex');
-  assert.equal(events[3].detail.conversationTitle, '整理桌面');
-  assert.equal(events[3].detail.isNewConversation, false);
+  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'stream', 'matching', 'sending', 'done']);
+  assert.equal(events[4].detail.agent, 'codex');
+  assert.equal(events[4].detail.conversationTitle, '整理桌面');
+  assert.equal(events[4].detail.isNewConversation, false);
+  assert.equal(events[4].detail.conversationId, 'c-1');
   assert.equal(model.calls.destroyed, 1);
 
   assert.equal(api.sends.length, 1);
@@ -209,14 +244,52 @@ test('模型输出幻觉 id 时整体回退规则匹配', async () => {
   assert.equal(api.sends[0].payload.content, '让CodeX清空回收站');
 });
 
+test('流式模型：增量回调累计文本，可读前导句 + JSON 尾部均可解析，done 携带会话定位', async () => {
+  const api = mockApi({ plugins: PLUGINS, itemsByPlugin: CONV_ITEMS });
+  const reply = '已选择 CodeX 的最近会话，语义相关。\n{"conversation_id":"c-1","agent_key":"host-a::codex","message":"请整理桌面","reason":"点名"}';
+  const model = mockModel([reply], { streaming: true });
+  const events = await collectPhases(createDelegateRunner({ api, model }), '用棱镜整理桌面文件');
+
+  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'stream', 'stream', 'stream', 'matching', 'sending', 'done']);
+  assert.equal(events[1].detail.text.length > 0, true);
+  assert.ok(events[2].detail.text.length > events[1].detail.text.length, 'deltas accumulate');
+
+  assert.equal(events[6].detail.agent, 'codex');
+  assert.equal(events[6].detail.hostId, 'host-a');
+  assert.equal(events[6].detail.pluginId, 'codex');
+  assert.equal(events[6].detail.conversationId, 'c-1');
+  assert.equal(events[6].detail.conversationTitle, '整理桌面');
+  assert.equal(api.sends[0].payload.content, '请整理桌面');
+});
+
+test('不支持流式的会话退回一次性 prompt，行为不变', async () => {
+  const api = mockApi({ plugins: PLUGINS, itemsByPlugin: CONV_ITEMS });
+  const model = mockModel(['{"conversation_id":"c-1","agent_key":"host-a::codex","message":"m","reason":""}']);
+  const events = await collectPhases(createDelegateRunner({ api, model }), '让CodeX整理桌面');
+  assert.equal(events.at(-1).phase, 'done');
+  assert.equal(events.at(-1).detail.conversationId, 'c-1');
+  assert.equal(events.filter((event) => event.phase === 'stream').length, 1, 'single non-streaming delta');
+});
+
+test('发送失败时 error 明细同样携带目标定位，全屏仍可进入', async () => {
+  const api = mockApi({ plugins: PLUGINS, itemsByPlugin: CONV_ITEMS });
+  api.sendMessage = async () => { throw new Error('NETWORK'); };
+  const model = mockModel(['{"conversation_id":"c-1","agent_key":"host-a::codex","message":"m","reason":""}']);
+  const events = await collectPhases(createDelegateRunner({ api, model }), '让CodeX整理桌面');
+  assert.equal(events.at(-1).phase, 'error');
+  assert.equal(events.at(-1).detail.hostId, 'host-a');
+  assert.equal(events.at(-1).detail.pluginId, 'codex');
+  assert.equal(events.at(-1).detail.conversationId, 'c-1');
+});
+
 test('云端 202 但 accepted:false 时如实报 sendFailed，不误报已委托', async () => {
   const api = mockApi({ plugins: PLUGINS, itemsByPlugin: CONV_ITEMS });
   api.sendMessage = async () => ({ request_id: 'r1', accepted: false, error_message: 'composer not ready' });
   const model = mockModel(['{"conversation_id":"c-1","agent_key":"host-a::codex","message":"m","reason":""}']);
   const events = await collectPhases(createDelegateRunner({ api, model }), '让CodeX清空回收站');
-  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'matching', 'sending', 'error']);
-  assert.equal(events[3].detail.code, 'sendFailed');
-  assert.match(events[3].detail.message, /composer not ready/);
+  assert.deepEqual(events.map((event) => event.phase), ['understanding', 'stream', 'matching', 'sending', 'error']);
+  assert.equal(events[4].detail.code, 'sendFailed');
+  assert.match(events[4].detail.message, /composer not ready/);
 });
 
 test('没有可用 Agent 或发送失败时进入 error，且不重复发送', async () => {

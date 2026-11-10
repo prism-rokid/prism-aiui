@@ -100,7 +100,8 @@ test('delegate card walks the five-step design state machine', async () => {
   assert.equal(ctx.data.stepTitle, t('delegate.agentReplied'));
   assert.deepEqual(
     ctx.data.indicators.map((item) => item.className),
-    ['delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-active']
+    ['delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-done', 'delegate-ind-dot-done'],
+    '全部完成后指示器全勾'
   );
 });
 

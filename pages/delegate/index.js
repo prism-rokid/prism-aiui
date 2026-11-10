@@ -105,13 +105,15 @@ export default {
   },
 
   buildIndicators(stepIndex) {
+    // 全部步骤完成（最后一步已到达）时，五个点全部进入 check 完成态。
+    const allDone = stepIndex >= STEP_KEYS.length - 1;
     return STEP_KEYS.map((key, index) => {
-      const done = index < stepIndex;
-      const active = index === stepIndex;
+      const done = allDone || index < stepIndex;
+      const active = !allDone && index === stepIndex;
       return {
         done,
         className: done ? 'delegate-ind-dot-done' : (active ? 'delegate-ind-dot-active' : 'delegate-ind-dot-pending'),
-        lineClassName: index > 0 && index <= stepIndex ? 'delegate-ind-line-done' : ''
+        lineClassName: index > 0 && (allDone || index <= stepIndex) ? 'delegate-ind-line-done' : ''
       };
     });
   },

@@ -58,7 +58,9 @@
 
 .delegate-ind-line {
   width: 20px;
-  height: 2px;
+  height: 3px;
+  border-radius: 1.5px;
+  margin-left: 6px;
   background-color: var(--delegate-primary);
   opacity: 0.3;
 }
@@ -94,7 +96,7 @@
 
 .delegate-ind-dot-pending {
   background-color: var(--delegate-primary);
-  opacity: 0.35;
+  opacity: 0.5;
 }
 
 .delegate-body {

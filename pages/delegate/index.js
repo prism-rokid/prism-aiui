@@ -154,7 +154,7 @@ export default {
     }
 
     const isFinal = phase === 'done' || phase === 'error';
-    const status = statusFor(phase, detail);
+    const status = this.statusFor(phase, detail);
     if (isFinal && detail.hostId) {
       this._delegateTarget = {
         hostId: detail.hostId,
@@ -164,6 +164,7 @@ export default {
     }
 
     if (phase === 'done') {
+      this.setData({ steps: buildSteps(PHASE_STEP.sending + 1) });
       this.appendLog(`✓ ${status}`, 'delegate-log-done');
       this._phase = phase;
       this.updateEnterVisible();

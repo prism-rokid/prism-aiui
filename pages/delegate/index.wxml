@@ -1,28 +1,21 @@
 <view class="delegate-card">
   <view class="delegate-head">
-    <text class="delegate-title">{{text.delegate.title}}</text>
-    <text class="delegate-request-line">{{requestText}}</text>
-  </view>
-
-  <scroll-view class="delegate-scroll" scroll-y="true" scroll-into-view="{{scrollAnchorId}}">
-    <view class="delegate-steps">
-      <view ink:for="{{steps}}" ink:key="index" class="delegate-step">
-        <view class="delegate-dot {{item.className}}"></view>
-        <text class="delegate-step-label {{item.labelClassName}}">{{item.label}}</text>
+    <view class="delegate-brand">
+      <image class="delegate-logo" src="../../assets/icons/prism-logo.svg" />
+      <text class="delegate-title">{{text.delegate.title}}</text>
+    </view>
+    <view class="delegate-indicator">
+      <view ink:for="{{indicators}}" ink:key="index" class="delegate-ind-item">
+        <view class="delegate-ind-line {{item.lineClassName}}" ink:if="{{index > 0}}"></view>
+        <view class="delegate-ind-dot {{item.className}}">{{item.mark}}</view>
       </view>
     </view>
+  </view>
 
-    <view class="delegate-stream" ink:if="{{streamText}}">
-      <text class="delegate-stream-label">{{text.delegate.aiReply}}</text>
-      <text class="delegate-stream-text">{{streamText}}</text>
-    </view>
-
-    <view ink:for="{{logs}}" ink:key="id" class="delegate-log">
-      <text class="delegate-log-text {{item.className}}">{{item.text}}</text>
-    </view>
-
-    <view id="{{endAnchorId}}" class="delegate-end-spacer"></view>
-  </scroll-view>
+  <view class="delegate-body">
+    <text class="delegate-step-title">{{stepTitle}}</text>
+    <text class="delegate-step-content" ink:if="{{stepContent}}">{{stepContent}}</text>
+  </view>
 
   <view class="delegate-enter {{enterClassName}}" ink:if="{{enterVisible}}" bindtap="openConversation">
     <text class="delegate-enter-text">{{text.delegate.enterConversation}}</text>

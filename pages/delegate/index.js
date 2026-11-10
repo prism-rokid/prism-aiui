@@ -1,51 +1,39 @@
-// 委托卡片（高卡形态）：卡片内展示详细进度——三个步骤、AI 流式回复、
-// 逐条日志，内容变化时自动滚动到底；在 _blank 全屏态提供「进入对话」，
-// 通过 setSelection 把远程选中切到被委托的会话后 navigateTo 面板对话页。
-// 原生 Agent Session Card 能力可用时状态同步到原生卡（当前运行时不可用，
-// 自动回退到页内 UI）。文案与类名全部在 JS 预计算，WXML 只做简单绑定。
+// 委托卡片（设计稿形态）：左上 Prism logo + 标题，右上五步指示器
+// （✓ 完成 / 圆环当前 / 实心待处理，短线相连），下方当前步骤标题 +
+// 50% 透明度内容。内容来源：前三步是调度器的 AI 流式分析文本，第四步
+// 起监视被委托会话的状态流，实时展示 Agent 流式回复，回复完成后进入
+// 第五步。全屏（_blank）态保留「进入对话」。文案与类名全部在 JS 预计
+// 算，WXML 只做简单绑定。
 
 import wx from 'wx';
 import { createPrismApi, PRODUCTION_API_BASE_URL, readableError } from '../../lib/prism-api.js';
 import { resolveAccountCredential } from '../../lib/prism-device-auth.js';
 import { LOCAL_DEBUG_AUTH } from '../../lib/prism-local-token.js';
 import { createDelegateRunner } from '../../lib/prism-delegate.js';
+import { findNewConversation, watchAgentReply } from '../../lib/prism-delegate-watch.js';
 import { truncateDisplayText } from '../../lib/widget-data.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 
-const PHASE_STEP = { understanding: 0, matching: 1, sending: 2 };
+const STEP_KEYS = ['understanding', 'matching', 'sending', 'agentReplying', 'agentReplied'];
 const REQUEST_TITLE_UNITS = 40;
-const STREAM_DISPLAY_UNITS = 120;
-// 结尾锚点双 id 交替：scroll-into-view 值不变不会重新滚动，内容增长时
-// 交替锚点强制滚动条一直贴住底部。
-const END_ANCHORS = ['delegate-end-a', 'delegate-end-b'];
-
-function buildSteps(stepIndex) {
-  return ['understanding', 'matching', 'sending'].map((phase, index) => ({
-    label: t(`delegate.${phase}`),
-    className: index < stepIndex ? 'delegate-dot-done' : (index === stepIndex ? 'delegate-dot-active' : ''),
-    labelClassName: index <= stepIndex ? 'delegate-step-label-active' : ''
-  }));
-}
+const AI_DISPLAY_UNITS = 96;
+const REPLY_DISPLAY_UNITS = 110;
 
 // AI 流式文本只展示可读前导句：JSON 决策段以第一个 '{' 截断。
-function streamForDisplay(rawText) {
+function aiForDisplay(rawText) {
   const text = String(rawText || '');
   const brace = text.indexOf('{');
   const readable = brace >= 0 ? text.slice(0, brace) : text;
-  const trimmed = truncateDisplayText(readable.replace(/\s+$/, ''), STREAM_DISPLAY_UNITS);
+  const trimmed = truncateDisplayText(readable.replace(/\s+$/, ''), AI_DISPLAY_UNITS);
   return brace >= 0 ? `${trimmed} …` : trimmed;
 }
 
 export default {
   data: {
     text: {},
-    requestText: '',
-    steps: [],
-    logs: [],
-    streamText: '',
-    streamVisible: false,
-    scrollAnchorId: 'delegate-end-a',
-    endAnchorId: END_ANCHORS[0],
+    indicators: [],
+    stepTitle: '',
+    stepContent: '',
     enterVisible: false,
     enterClassName: 'delegate-enter'
   },
@@ -53,15 +41,18 @@ export default {
   async onLoad(query) {
     initI18n({ wx });
     this._destroyed = false;
-    this._logSeq = 0;
-    this._anchorFlip = false;
-    this._delegateTarget = null;
+    this._stepIndex = 0;
     this._phase = '';
+    this._aiText = '';
+    this._replyText = '';
+    this._delegateTarget = null;
+    this._replySinceTs = 0;
     const requestText = String(query && query.request || '').trim();
     this.setData({
       text: buildTextMap(),
-      requestText: truncateDisplayText(requestText, REQUEST_TITLE_UNITS),
-      steps: buildSteps(PHASE_STEP.understanding)
+      indicators: this.buildIndicators(0),
+      stepTitle: t('delegate.understanding'),
+      stepContent: ''
     });
     if (!requestText) {
       this.applyPhase('error', { code: 'missingRequest' });
@@ -85,6 +76,7 @@ export default {
 
   onUnload() {
     this._destroyed = true;
+    if (this._watcher && typeof this._watcher.stop === 'function') this._watcher.stop();
   },
 
   // _current 卡片容器 / _blank 全屏承载切换时由宿主回调。
@@ -112,85 +104,143 @@ export default {
     }
   },
 
-  appendLog(text, className = '') {
-    if (this._destroyed) return;
-    this._logSeq += 1;
-    const logs = this.data.logs.concat([{ id: `log-${this._logSeq}`, text, className }]);
-    this.setData({ logs, ...this.scrollToEnd() });
-  },
-
-  // 每次内容变化都把结尾锚点换到另一个 id，让 scroll-into-view 重新生效。
-  scrollToEnd() {
-    this._anchorFlip = !this._anchorFlip;
-    const endAnchorId = END_ANCHORS[this._anchorFlip ? 1 : 0];
-    return { endAnchorId, scrollAnchorId: endAnchorId };
-  },
-
-  statusFor(phase, detail = {}) {
-    if (phase === 'done') {
-      const conversationLabel = detail.isNewConversation || !detail.conversationTitle
-        ? t('delegate.newConversation')
-        : detail.conversationTitle;
-      return t('delegate.done', { agent: detail.agent || '', conversation: conversationLabel });
-    }
-    if (phase === 'error') {
-      if (detail.code === 'noAgents') return t('delegate.noAgents');
-      if (detail.code === 'missingRequest') return t('delegate.missingRequest');
-      if (detail.code === 'authFailed') return detail.message || t('delegate.failed');
-      return `${t('delegate.failed')}（${detail.message || ''}）`;
-    }
-    return t(`delegate.${phase}`);
+  buildIndicators(stepIndex) {
+    return STEP_KEYS.map((key, index) => {
+      const done = index < stepIndex;
+      const active = index === stepIndex;
+      return {
+        mark: done ? '✓' : '',
+        className: done ? 'delegate-ind-dot-done' : (active ? 'delegate-ind-dot-active' : 'delegate-ind-dot-pending'),
+        lineClassName: index > 0 && index <= stepIndex ? 'delegate-ind-line-done' : ''
+      };
+    });
   },
 
   applyPhase(phase, detail = {}) {
     if (this._destroyed) return;
     if (phase === 'stream') {
+      this._aiText = aiForDisplay(detail.text);
+      if (this._stepIndex <= 2) this.setData({ stepContent: this._aiText });
+      return;
+    }
+
+    if (phase === 'understanding' || phase === 'matching' || phase === 'sending') {
+      const stepIndex = phase === 'understanding' ? 0 : (phase === 'matching' ? 1 : 2);
+      this._stepIndex = stepIndex;
+      this._phase = phase;
       this.setData({
-        streamVisible: true,
-        streamText: streamForDisplay(detail.text),
-        ...this.scrollToEnd()
+        indicators: this.buildIndicators(stepIndex),
+        stepTitle: t(`delegate.${phase}`),
+        stepContent: this._aiText
       });
       return;
     }
 
-    const isFinal = phase === 'done' || phase === 'error';
-    const status = this.statusFor(phase, detail);
-    if (isFinal && detail.hostId) {
+    if (phase === 'done') {
       this._delegateTarget = {
         hostId: detail.hostId,
         pluginId: detail.pluginId,
         conversationId: detail.conversationId || ''
       };
-    }
-
-    if (phase === 'done') {
-      this.setData({ steps: buildSteps(PHASE_STEP.sending + 1) });
-      this.appendLog(`✓ ${status}`, 'delegate-log-done');
-      this._phase = phase;
+      // 发送已受理：进入第四步并开始盯 Agent 回复。留 30 秒余量覆盖
+      // 委托消息刚落地、卡片侧才挂流的窗口。
+      this._replySinceTs = Date.now() - 30000;
+      this.enterStep(3, t('delegate.agentReplying'), '');
       this.updateEnterVisible();
+      void this.startReplyWatch();
       return;
     }
+
     if (phase === 'error') {
-      this.appendLog(`✕ ${status}`, 'delegate-log-error');
-      this._phase = phase;
+      if (detail.hostId) {
+        this._delegateTarget = {
+          hostId: detail.hostId,
+          pluginId: detail.pluginId,
+          conversationId: detail.conversationId || ''
+        };
+      }
+      this._phase = 'error';
+      const reason = detail.code === 'noAgents' ? t('delegate.noAgents')
+        : detail.code === 'missingRequest' ? t('delegate.missingRequest')
+        : detail.code === 'authFailed' ? (detail.message || t('delegate.failed'))
+        : (detail.message || t('delegate.failed'));
+      this.setData({
+        indicators: this.buildIndicators(this._stepIndex),
+        stepTitle: t('delegate.failed'),
+        stepContent: truncateDisplayText(reason, AI_DISPLAY_UNITS)
+      });
       this.updateEnterVisible();
-      return;
     }
+  },
 
-    const stepIndex = PHASE_STEP[phase] || 0;
-    this.setData({ steps: buildSteps(stepIndex) });
-    if (this._phase !== phase) {
-      this._phase = phase;
-      this.appendLog(status);
+  enterStep(stepIndex, title, content) {
+    this._stepIndex = stepIndex;
+    this._phase = STEP_KEYS[stepIndex] || this._phase;
+    this.setData({
+      indicators: this.buildIndicators(stepIndex),
+      stepTitle: title,
+      stepContent: content
+    });
+  },
+
+  // 第四步：找到被委托会话并挂流，Agent 回复实时进内容区；回复完成
+  // （或空闲/总超时兜底）进入第五步。
+  async startReplyWatch() {
+    const target = this._delegateTarget;
+    if (!target || this._destroyed) return;
+    try {
+      let conversationId = target.conversationId;
+      if (!conversationId) {
+        const found = await findNewConversation(this._api, {
+          hostId: target.hostId,
+          pluginId: target.pluginId,
+          sinceTs: this._replySinceTs,
+          isAborted: () => this._destroyed
+        });
+        if (!found) {
+          this.enterStep(4, t('delegate.agentReplied'), '');
+          return;
+        }
+        conversationId = found.conversationId;
+        target.conversationId = conversationId;
+        this.updateEnterVisible();
+      }
+      if (this._destroyed) return;
+      this._watcher = watchAgentReply(this._api, {
+        hostId: target.hostId,
+        pluginId: target.pluginId,
+        conversationId,
+        minCreatedAt: this._replySinceTs,
+        onText: (text) => {
+          if (this._destroyed || this._stepIndex < 3) return;
+          this._replyText = truncateDisplayText(String(text || ''), REPLY_DISPLAY_UNITS);
+          this.setData({ stepContent: this._replyText });
+        },
+        onCompleted: (text) => {
+          if (this._destroyed) return;
+          this._replyText = truncateDisplayText(String(text || ''), REPLY_DISPLAY_UNITS);
+          this.enterStep(4, t('delegate.agentReplied'), this._replyText);
+          this.updateEnterVisible();
+        },
+        onError: (message) => {
+          if (this._destroyed) return;
+          console.warn('[PrismDelegate] reply watch failed', message);
+        },
+        isAborted: () => this._destroyed
+      });
+    } catch (error) {
+      console.warn('[PrismDelegate] reply watch setup failed', error && error.message || error);
     }
   },
 
   updateEnterVisible() {
     const enterVisible = this.data.target === '_blank'
       && Boolean(this._delegateTarget)
-      && (this._phase === 'done' || this._phase === 'error');
-    const patch = { enterVisible, enterClassName: 'delegate-enter' };
-    if (enterVisible !== this.data.enterVisible) this.setData(patch);
+      && (this._phase === 'done' || this._phase === 'error'
+        || this._stepIndex >= 3);
+    if (enterVisible !== this.data.enterVisible) {
+      this.setData({ enterVisible });
+    }
   },
 
   // 全屏态「进入对话」：把远程选中切到被委托的会话，再进入面板。

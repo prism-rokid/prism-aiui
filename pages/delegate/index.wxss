@@ -1,6 +1,6 @@
-/* 委托卡片（高卡形态）：填满宿主槽位（语音链路 BOUNDED ~168px，全屏
-   352px），内部 scroll-view 承载步骤、AI 流式回复与日志，自动滚到底；
-   全屏态额外提供「进入对话」。单色/全彩共用变量体系。 */
+/* 委托卡片（设计稿形态）：填满宿主槽位（语音链路 BOUNDED ~168px，全屏
+   352px）。左上 logo+标题，右上五步指示器，下方步骤标题 + 50% 内容。
+   单色/全彩共用变量体系。 */
 
 .delegate-card {
   --delegate-primary: var(--color-primary);
@@ -8,8 +8,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 12px 16px;
   box-sizing: border-box;
   background-color: var(--color-background);
   color: var(--delegate-primary);
@@ -19,129 +19,107 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
   flex-shrink: 0;
+}
+
+.delegate-brand {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.delegate-logo {
+  width: 20px;
+  height: 20px;
 }
 
 .delegate-title {
   font-family: sans-serif;
-  font-size: 15px;
-  line-height: 18px;
+  font-size: 16px;
+  line-height: 20px;
   font-weight: 600;
   color: var(--delegate-primary);
-  flex-shrink: 0;
 }
 
-.delegate-request-line {
+.delegate-indicator {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.delegate-ind-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.delegate-ind-line {
+  width: 12px;
+  height: 2px;
+  background-color: var(--delegate-primary);
+  opacity: 0.3;
+}
+
+.delegate-ind-line-done {
+  opacity: 0.9;
+}
+
+.delegate-ind-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 7px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
   font-family: sans-serif;
-  font-size: 13px;
-  line-height: 16px;
-  color: var(--delegate-muted);
-  overflow: hidden;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
 }
 
-.delegate-scroll {
+.delegate-ind-dot-done {
+  background-color: var(--delegate-primary);
+  color: var(--color-background);
+}
+
+.delegate-ind-dot-active {
+  border: 2px solid var(--delegate-primary);
+  box-sizing: border-box;
+}
+
+.delegate-ind-dot-pending {
+  background-color: var(--delegate-primary);
+  opacity: 0.35;
+}
+
+.delegate-body {
   flex-grow: 1;
   flex-shrink: 1;
   flex-basis: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
-.delegate-steps {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 14px;
-  padding: 2px 0 6px 0;
+.delegate-step-title {
+  font-family: sans-serif;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--delegate-primary);
   flex-shrink: 0;
 }
 
-.delegate-step {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 5px;
-}
-
-.delegate-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background-color: var(--delegate-muted);
-  opacity: 0.35;
-}
-
-.delegate-dot-active {
-  opacity: 1;
-}
-
-.delegate-dot-done {
-  opacity: 0.85;
-}
-
-.delegate-step-label {
+.delegate-step-content {
   font-family: sans-serif;
-  font-size: 13px;
-  line-height: 16px;
-  color: var(--delegate-muted);
-  opacity: 0.55;
-}
-
-.delegate-step-label-active {
+  font-size: 15px;
+  line-height: 20px;
   color: var(--delegate-primary);
-  opacity: 1;
-}
-
-.delegate-stream {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px;
-  border-left: 2px solid var(--delegate-primary);
-  margin-bottom: 6px;
-}
-
-.delegate-stream-label {
-  font-family: sans-serif;
-  font-size: 12px;
-  line-height: 15px;
-  color: var(--delegate-muted);
-  opacity: 0.75;
-}
-
-.delegate-stream-text {
-  font-family: sans-serif;
-  font-size: 14px;
-  line-height: 18px;
-  color: var(--delegate-primary);
-}
-
-.delegate-log {
-  display: flex;
-  flex-direction: row;
-  padding: 1px 0;
-}
-
-.delegate-log-text {
-  font-family: sans-serif;
-  font-size: 13px;
-  line-height: 17px;
-  color: var(--delegate-muted);
-}
-
-.delegate-log-done {
-  color: var(--delegate-primary);
-  font-weight: 600;
-}
-
-.delegate-log-error {
-  color: var(--delegate-muted);
-}
-
-.delegate-end-spacer {
-  height: 2px;
+  opacity: 0.5;
 }
 
 .delegate-enter {
@@ -169,28 +147,23 @@
 
 @media (target: _blank) {
   .delegate-card {
-    gap: 10px;
+    gap: 12px;
     padding: 18px 20px;
   }
 
   .delegate-title {
-    font-size: 17px;
-    line-height: 21px;
+    font-size: 18px;
+    line-height: 22px;
   }
 
-  .delegate-request-line {
-    font-size: 14px;
-    line-height: 18px;
+  .delegate-step-title {
+    font-size: 19px;
+    line-height: 24px;
   }
 
-  .delegate-stream-text {
-    font-size: 15px;
-    line-height: 20px;
-  }
-
-  .delegate-log-text {
-    font-size: 14px;
-    line-height: 19px;
+  .delegate-step-content {
+    font-size: 16px;
+    line-height: 22px;
   }
 
   .delegate-enter {

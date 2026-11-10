@@ -248,8 +248,9 @@ export default {
       && (this._phase === 'done' || this._phase === 'error' || this._stepIndex >= 3);
   },
 
-  // 把远程选中切到被委托的会话，再进入面板；面板启动时读取云端选中，
-  // 即落在该智能体的对话页。
+  // 把远程选中切到被委托的会话，再进入面板。带 host/plugin/conversation
+  // 深链参数时，面板 bootstrap 后直接落到该会话的对话页；会话还没定位
+  // 到（草稿轮询中/发送失败无会话）则不带参数，面板按默认落在收件箱。
   async openConversation() {
     const target = this._delegateTarget;
     if (!target || this._opening) return;
@@ -264,7 +265,10 @@ export default {
     } catch (error) {
       console.warn('[PrismDelegate] setSelection failed', error && error.message || error);
     }
-    wx.navigateTo({ url: '/pages/index/index' });
+    const params = target.conversationId
+      ? `?host=${encodeURIComponent(target.hostId)}&plugin=${encodeURIComponent(target.pluginId)}&conversation=${encodeURIComponent(target.conversationId)}`
+      : '';
+    wx.navigateTo({ url: `/pages/index/index${params}` });
     this._opening = false;
   }
 };

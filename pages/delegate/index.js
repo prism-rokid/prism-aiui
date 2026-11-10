@@ -2,9 +2,11 @@
 // （✓ 完成 / 圆环当前 / 实心待处理，短线相连），下方当前步骤标题 +
 // 50% 透明度内容。内容来源：前三步是调度器的 AI 流式分析文本，第四步
 // 起监视被委托会话的状态流，实时展示 Agent 流式回复，回复完成后进入
-// 第五步。委托受理（或失败已定位目标）后，点击卡片任意处直接进入面
-// 板对话页，无中间跳转页。文案与类名全部在 JS 预计算，WXML 只做简
-// 单绑定。
+// 第五步。委托受理（或失败已定位目标）后进入面板对话页：宿主会吞掉
+// 对话流卡片的点击用于展开全屏，页面拿不到该事件，因此在展开瞬间
+// （onTargetChanged('_blank')）直接 navigateTo 面板，全屏卡片只是一
+// 闪而过的中转；全屏态下页面能收到点击，作为兜底入口。文案与类名全
+// 部在 JS 预计算，WXML 只做简单绑定。
 
 import wx from 'wx';
 import { createPrismApi, PRODUCTION_API_BASE_URL, readableError } from '../../lib/prism-api.js';
@@ -75,6 +77,16 @@ export default {
   onUnload() {
     this._destroyed = true;
     if (this._watcher && typeof this._watcher.stop === 'function') this._watcher.stop();
+  },
+
+  // 宿主展开全屏的瞬间：委托已受理（或失败已定位目标）就直接进入面
+  // 板对话页，让「点卡片 → 对话页」一步到位，没有全屏中转页。
+  onTargetChanged(target) {
+    if (this._destroyed) return;
+    if (target === '_blank' && this.canEnter()) {
+      console.log('[PrismDelegate]', JSON.stringify({ event: 'target.blank.enter' }));
+      this.openConversation();
+    }
   },
 
   async createApi() {
@@ -222,8 +234,8 @@ export default {
     }
   },
 
-  // 点击卡片任意处直接进入面板对话页（卡片态/全屏态一致，无中间页）。
-  // 前三步调度未受理前忽略点击，避免打断进行中的委托。
+  // 全屏态兜底入口：全屏卡片能收到页面点击，点击任意处进入对话页。
+  // 对话流卡片态的点击被宿主用于展开，到不了页面。
   onCardTap() {
     const ready = this.canEnter();
     console.log('[PrismDelegate]', JSON.stringify({ event: 'card.tap', ready }));

@@ -4,7 +4,6 @@
 
 .delegate-card {
   --delegate-primary: var(--color-primary);
-  --delegate-muted: var(--color-primary-60, var(--color-primary));
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -118,6 +117,13 @@
   flex-shrink: 0;
 }
 
+.delegate-step-viewport {
+  width: 100%;
+  /* The native scroll view needs a measured height in a bounded card. */
+  height: 90px;
+  flex-shrink: 0;
+}
+
 .delegate-step-content {
   font-family: sans-serif;
   font-size: 15px;
@@ -140,6 +146,10 @@
   .delegate-step-title {
     font-size: 19px;
     line-height: 24px;
+  }
+
+  .delegate-step-viewport {
+    height: 250px;
   }
 
   .delegate-step-content {

@@ -1,8 +1,8 @@
-<view class="delegate-card" bindtap="onCardTap">
+<view class="delegate-card" bindtap="openConversation">
   <view class="delegate-head">
     <view class="delegate-brand">
       <image class="delegate-logo" src="../../assets/icons/prism-logo.svg" />
-      <text class="delegate-title">{{text.delegate.title}}</text>
+      <text class="delegate-title">{{title}}</text>
     </view>
     <view class="delegate-indicator">
       <view ink:for="{{indicators}}" ink:key="index" class="delegate-ind-item">
@@ -16,6 +16,8 @@
 
   <view class="delegate-body">
     <text class="delegate-step-title">{{stepTitle}}</text>
-    <text class="delegate-step-content" ink:if="{{stepContent}}">{{stepContent}}</text>
+    <scroll-view class="delegate-step-viewport" scroll-y="true">
+      <text class="delegate-step-content">{{stepContent}}</text>
+    </scroll-view>
   </view>
 </view>

@@ -62,35 +62,100 @@ test('the inbox is the home surface and the agent/thread panels no longer exist'
   assert.doesNotMatch(pageSource, /surface === 'threads'/);
 });
 
-test('bootstrap always lands on the inbox, with or without unread conversations', async () => {
-  const pageSource = await readPageBundle();
+test('bootstrap reveals the first inbox rows without waiting for other Agents or activating Desktop', async (t) => {
   const config = await evaluatePageConfig();
   const page = createPageInstance(config);
+  t.after(() => page.onUnload());
+  let resolveSlowIndex;
+  const indexRequests = [];
+  const api = createFakeApi();
+  const selections = [];
   page._api = {
-    getMe: async () => ({}),
+    ...api,
     getHostPlugins: async () => ({
-      items: [{ host_id: 'h1', plugin_id: 'p1', display_name: 'Agent', status: 'idle', connected: true, available: true }]
+      items: [
+        { host_id: 'h1', plugin_id: 'p1', connected: true, available: true },
+        { host_id: 'h2', plugin_id: 'p2', connected: true, available: true }
+      ]
     }),
-    getSelection: async () => ({ selected_host_id: 'h1', selected_plugin_id: 'p1', selected_conversation_id: '' }),
-    getConversationIndex: async () => ({ items: conversations, signature: 's1' }),
-    setSelection: async () => ({}),
-    markRead: async () => ({}),
-    closeStateStream: async () => ({}),
-    openConversationStream: () => ({ abort() {} })
+    getConversationIndex(hostId) {
+      indexRequests.push(hostId);
+      return hostId === 'h1'
+        ? Promise.resolve({ items: conversations, signature: 's1' })
+        : new Promise((resolve) => { resolveSlowIndex = resolve; });
+    },
+    setSelection: async (selection) => { selections.push(selection); }
   };
 
-  await page.bootstrap();
-
+  const boot = page.bootstrap();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(page.data.loading, false);
-  assert.equal(page.data.surface, 'inbox', 'bootstrap lands on the inbox unconditionally');
+  assert.equal(page.data.surface, 'inbox');
   assert.equal(page.data.menuVisible, true);
-  assert.equal(page.data.inboxItems.length, 1, 'conversation shows up in the inbox');
-  assert.equal(page.data.inboxItems[0].conversation_id, 'conv-a');
+  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-a']);
+  assert.deepEqual(selections, []);
+  assert.equal(api.streams.length, 0);
 
-  page.stopPolling();
-  page.stopLoaderSpin();
-  page.clearConversationLoadingFallback();
-  page.closeConversationStream();
+  await page.activateFocused();
+  assert.deepEqual(indexRequests, ['h1', 'h2'], 'opening a visible row reuses its index');
+  assert.equal(selections[0].selected_conversation_id, 'conv-a');
+  assert.equal(selections[0].activate_desktop, true);
+  assert.equal(api.streams[0].conversationId, 'conv-a');
+
+  resolveSlowIndex({ items: [{ conversation_id: 'conv-b', updated_at: 200, unread: true }] });
+  await boot;
+  assert.equal(page.data.surface, 'main', 'late inbox updates respect navigation');
+  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-b', 'conv-a']);
+});
+
+test('delegate deep link opens its conversation before the selection write and other indexes finish', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  const api = createFakeApi();
+  let resolveSelection;
+  let resolveOtherIndex;
+  page._deepLink = { hostId: 'h1', pluginId: 'p1', conversationId: 'conv-a' };
+  page._api = {
+    ...api,
+    getHostPlugins: async () => ({
+      items: [
+        { host_id: 'h2', plugin_id: 'p2', connected: true, available: true, selected_conversation_id: 'conv-b' },
+        { host_id: 'h1', plugin_id: 'p1', connected: true, available: true }
+      ]
+    }),
+    getConversationIndex: (hostId) => hostId === 'h1'
+      ? Promise.resolve({ items: conversations, signature: 's1' })
+      : new Promise((resolve) => { resolveOtherIndex = resolve; }),
+    setSelection: () => new Promise((resolve) => { resolveSelection = resolve; })
+  };
+
+  const boot = page.bootstrap();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(page.data.loading, false);
+  assert.equal(page.data.surface, 'main');
+  assert.equal(page.data.selectedConversationId, 'conv-a');
+  assert.equal(api.streams[0].hostId, 'h1');
+  assert.equal(api.streams[0].conversationId, 'conv-a');
+  resolveOtherIndex({ items: [] });
+  resolveSelection({});
+  await boot;
+});
+
+test('missing delegate conversation falls back to the inbox without activating another conversation', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  page._deepLink = { hostId: 'h1', pluginId: 'p1', conversationId: 'gone' };
+  page._api = {
+    getHostPlugins: async () => ({
+      items: [{ host_id: 'h1', plugin_id: 'p1', connected: true, available: true }]
+    }),
+    getConversationIndex: async () => ({ items: conversations }),
+  };
+  await page.bootstrap();
+  assert.equal(page.data.surface, 'inbox');
+  assert.equal(page.data.loading, false);
+  assert.equal(page.data.selectedConversationId, '');
+  assert.equal(page.data.inboxItems[0].conversation_id, 'conv-a');
 });
 
 test('back from the conversation page keeps cached inbox items visible during refresh', async () => {

@@ -135,8 +135,7 @@ export default {
     // instance is actually serving.
     console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261025-readable-interactions' }));
     trace('page.load.start', { surface: this.data.surface });
-    // 委托卡片深链：conversation 参数命中时，bootstrap 后直接落到该会话
-    // 的对话页而不是收件箱（host/plugin 仅用于校验，选择仍以云端为准）。
+    // 委托卡片深链通过 Agent 的会话索引验证目标，命中后直接打开会话。
     this._deepLink = query && query.conversation ? {
       hostId: String(query.host || ''),
       pluginId: String(query.plugin || ''),

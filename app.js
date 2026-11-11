@@ -5,7 +5,6 @@ export default {
     const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     console.log('[PrismAIUI]', JSON.stringify({ time, event: 'app.launch' }));
   },
-
   globalData: {
     designWidth: 480,
     designHeight: 352,

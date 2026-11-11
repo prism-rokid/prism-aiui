@@ -1,13 +1,13 @@
 {
   "navigationBarTitleText": "Prism 委托",
-  "description": "用户想把任务委托给远程开发智能体（CodeX、Claude Code、CodeBuddy、OpenClaw、Hermes 等）代为执行时返回此工具，例如“用棱镜把桌面上的文件夹放到回收站”“让CodeX清空回收站”。request 传入用户请求原文，不要改写。",
+  "description": "在对话流中使用 cut card 承接“让棱镜XXX”类的委托请求，不打开全屏面板。卡片将任务委托给远程开发智能体（Codex、Claude Code、OpenCode、OpenClaw、Hermes 等），显示发送和回复进度。request 传入用户原话，保留项目名、目录和新开会话的要求。",
   "schema": {
     "data": {
       "type": "object",
       "properties": {
         "request": {
           "type": "string",
-          "description": "用户的委托请求原文，例如“把桌面上的文件夹放到回收站”。"
+          "description": "用户的委托请求原文，例如“让 Codex 在 prism-api 项目里新开一个会话，检查接口”。"
         }
       },
       "required": ["request"]

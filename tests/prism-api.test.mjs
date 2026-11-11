@@ -82,6 +82,11 @@ test('new conversation flow goes through draft open and start', async () => {
     });
   }), { baseUrl: 'https://prism.example' });
 
+  for (const cwd of ['', 'relative/path', '/Users/me/Documents/Codex/2026-11-11/task']) {
+    await assert.rejects(api.openDraft('host-1', 'codex', { cwd }), /PROJECT_DIRECTORY_REQUIRED/);
+  }
+  assert.equal(requests.length, 0);
+
   const draft = await api.openDraft('host-1', 'codex.automation', { cwd: '/workspace/demo' });
   assert.equal(draft.draft_id, 'draft-1');
   await api.startDraft('host-1', 'codex.automation', draft.draft_id, {

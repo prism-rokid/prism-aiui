@@ -130,11 +130,17 @@ export default {
     exitPending: false
   },
 
-  onLoad() {
+  onLoad(query) {
     // Build marker: grep this tag in logcat to confirm which build the page
     // instance is actually serving.
     console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261025-readable-interactions' }));
     trace('page.load.start', { surface: this.data.surface });
+    // 委托卡片深链通过 Agent 的会话索引验证目标，命中后直接打开会话。
+    this._deepLink = query && query.conversation ? {
+      hostId: String(query.host || ''),
+      pluginId: String(query.plugin || ''),
+      conversationId: String(query.conversation || '')
+    } : null;
     wx.setBackgroundColor({ backgroundColor: '#000000' });
     // Locale first: every later label read (welcome message, menu, hints)
     // must resolve against the finalized language.

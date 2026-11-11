@@ -1,0 +1,23 @@
+<view class="delegate-card" bindtap="openConversation">
+  <view class="delegate-head">
+    <view class="delegate-brand">
+      <image class="delegate-logo" src="../../assets/icons/prism-logo.svg" />
+      <text class="delegate-title">{{title}}</text>
+    </view>
+    <view class="delegate-indicator">
+      <view ink:for="{{indicators}}" ink:key="index" class="delegate-ind-item">
+        <view class="delegate-ind-line {{item.lineClassName}}" ink:if="{{index > 0}}"></view>
+        <view class="delegate-ind-dot {{item.className}}">
+          <image class="delegate-ind-check" src="../../assets/icons/icon-check.svg" ink:if="{{item.done}}" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="delegate-body">
+    <text class="delegate-step-title">{{stepTitle}}</text>
+    <scroll-view class="delegate-step-viewport" scroll-y="true">
+      <text class="delegate-step-content">{{stepContent}}</text>
+    </scroll-view>
+  </view>
+</view>

@@ -64,8 +64,6 @@ button {
   box-sizing: border-box;
   padding: var(--spacing-sm);
   z-index: 4;
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-topbar-title, .prism-topbar-status,
@@ -137,8 +135,6 @@ button {
   align-items: center;
   box-sizing: border-box;
   padding: var(--spacing-sm);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-main-chat {
@@ -153,8 +149,6 @@ button {
   align-items: stretch;
   box-sizing: border-box;
   padding: var(--spacing-sm) 0;
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-main-chat-thread-picker { display: none; }
@@ -166,8 +160,6 @@ button {
   flex-shrink: 1;
   flex-basis: auto;
   box-sizing: border-box;
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 .prism-chat-progress {
   width: 2px;
@@ -207,8 +199,6 @@ button {
   align-items: center;
   justify-content: center;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 .prism-loading-state {
   display: flex;
@@ -310,8 +300,6 @@ button {
   flex-direction: column;
   box-sizing: border-box;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-bottom-tips {
@@ -324,8 +312,6 @@ button {
   justify-content: flex-end;
   box-sizing: border-box;
   padding: 2px var(--spacing-sm);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
   opacity: 0.5;
   z-index: 5;
 }
@@ -345,8 +331,6 @@ button {
   padding: 2px var(--spacing-sm);
   z-index: 12;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-menu-hidden {
@@ -398,8 +382,6 @@ block {
   padding: 1px calc(var(--spacing-md) / 2) 6px;
   z-index: 11;
   background-color: var(--prism-primary-10);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 
 .prism-list-layout { width: 100%; height: 0; min-height: 0; display: flex; flex-grow: 1; flex-shrink: 1; flex-basis: 0; flex-direction: row; box-sizing: border-box; }
@@ -423,8 +405,6 @@ block {
   overflow: hidden;
   z-index: 11;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 .prism-inbox-list { width: 100%; height: 100%; min-height: 1px; flex-grow: 1; flex-shrink: 1; flex-basis: auto; }
 .prism-inbox-list-content { width: 100%; display: flex; flex-direction: column; }
@@ -462,8 +442,6 @@ block {
   padding: var(--spacing-sm);
   z-index: 14;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 .prism-control-title { opacity: 0.5; }
 .prism-control-list { width: 100%; height: 100%; flex-grow: 1; flex-shrink: 1; flex-basis: 0; }
@@ -481,8 +459,6 @@ block {
   padding: var(--spacing-md);
   z-index: 15;
   background-color: var(--color-background);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
 }
 .prism-approval-actions { justify-content: flex-end; gap: 8px; }
 
@@ -497,8 +473,6 @@ block {
   padding: var(--spacing-sm) var(--spacing-md);
   z-index: 20;
   background-color: var(--prism-primary-10);
-  border-top: 0.5px solid var(--prism-primary-20);
-  border-bottom: 0.5px solid var(--prism-primary-20);
   border-radius: var(--radius-md);
 }
 

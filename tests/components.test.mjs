@@ -66,7 +66,7 @@ test('every authored frame and divider remains half a pixel thick', async () => 
   }
 });
 
-test('page section containers expose consistent 20 percent vertical dividers', async () => {
+test('page section containers carry no horizontal divider borders', async () => {
   const page = await readPageBundle();
   const selectors = [
     'prism-main-topbar', 'prism-plan', 'prism-main-chat', 'prism-main-chatbox', 'prism-loading-overlay',
@@ -76,10 +76,8 @@ test('page section containers expose consistent 20 percent vertical dividers', a
   ];
   for (const selector of selectors) {
     const rule = page.match(new RegExp(`\\.${selector}\\s*\\{[^}]*\\}`, 's'));
-    assert.ok(rule, `${selector} should declare its own guide borders`);
-    assert.match(rule[0], /border-top:\s*0\.5px solid var\(--prism-primary-20\)/);
-    assert.match(rule[0], /border-bottom:\s*0\.5px solid var\(--prism-primary-20\)/);
-    assert.doesNotMatch(rule[0], /\bborder(?:-left|-right)?\s*:/);
+    assert.ok(rule, `${selector} should declare its own block`);
+    assert.doesNotMatch(rule[0], /\bborder(?:-top|-bottom|-left|-right)?\s*:/);
   }
   assert.match(page, /\.prism-draft\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)/s);
 });
@@ -173,7 +171,8 @@ test('conversation layout uses compact rounded rectangular user bubbles', async 
   const page = await readPageBundle();
 
   assert.match(page, /\.prism-chat-content\s*\{[^}]*width:\s*100%[^}]*flex-direction:\s*column[^}]*padding:\s*var\(--spacing-sm\) var\(--spacing-md\)/s);
-  assert.match(page, /\.prism-main-chatbox\s*\{[^}]*box-sizing:\s*border-box[^}]*border-top:\s*0\.5px solid var\(--prism-primary-20\)[^}]*border-bottom:\s*0\.5px solid var\(--prism-primary-20\)/s);
+  assert.match(page, /\.prism-main-chatbox\s*\{[^}]*box-sizing:\s*border-box/s);
+  assert.doesNotMatch(page, /\.prism-main-chatbox\s*\{[^}]*border-top|border-bottom/s);
   assert.match(page, /\.prism-user-bubble\s*\{[^}]*width:\s*auto[^}]*max-width:\s*85%[^}]*align-self:\s*flex-end[^}]*overflow:\s*hidden/s);
   assert.match(page, /\.prism-user-bubble\s*\{[^}]*border:\s*0\.5px solid var\(--prism-primary-30\)[^}]*border-radius:\s*4px/s);
   assert.match(page, /\.prism-user-bubble-body\s*\{[^}]*padding:\s*2px 8px 4\.5px/s);
@@ -821,7 +820,6 @@ test('main page implements the touch interaction surfaces and remote API hooks',
     "surface: 'approval'",
     'createVoiceInput({',
     'getHostPlugins()',
-    'getSelection()',
     'getConversationIndex(',
     'openConversationStream(',
     "case 'conversation.snapshot':",

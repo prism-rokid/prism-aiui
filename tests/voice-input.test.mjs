@@ -15,6 +15,7 @@ function fixture() {
     async start(options) { calls.push(['start', options]); },
     async stop() { calls.push(['stop']); if (recorder.stopHandler) recorder.stopHandler(); },
     onFrameRecorded(handler) { recorder.frameHandler = handler; },
+    onHeader(handler) { recorder.headerHandler = handler; },
     onStop(handler) { recorder.stopHandler = handler; },
     onError(handler) { recorder.errorHandler = handler; }
   };
@@ -51,6 +52,22 @@ test('native recorder streams 16kHz mono PCM frames into the latest ASR session'
   f.recorder.frameHandler({ frameBuffer: new ArrayBuffer(8) });
   await flush();
   assert.deepEqual(f.calls[1], ['write', 8]);
+});
+
+test('Opus-capable ASR receives the header and all encoded frames in order', async () => {
+  const f = fixture();
+  f.Session.getCapabilities = async () => ({ interimResults: true, audioFormats: [
+    { mimeType: 'audio/pcm' }, { mimeType: 'audio/ogg;codecs=opus' }
+  ] });
+  await f.voice.start();
+  assert.deepEqual(f.sessions[0].options.audio, { mimeType: 'audio/ogg;codecs=opus' });
+  assert.deepEqual(f.calls[0], ['start', { sampleRate: 16000, numberOfChannels: 1, format: 'opus', frameSize: 100 }]);
+  f.recorder.headerHandler('opus', new ArrayBuffer(7));
+  f.recorder.frameHandler({ frameBuffer: new ArrayBuffer(4), voiceActive: false });
+  f.voice.stop();
+  await flush();
+  assert.deepEqual(f.calls.filter(([kind]) => kind === 'write'), [['write', 7], ['write', 4]]);
+  assert.equal(f.calls.at(-1)[0], 'close');
 });
 
 test('stopping waits for native recorder frames before closing the ASR writer', async () => {

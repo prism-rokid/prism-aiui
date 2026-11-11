@@ -1,0 +1,16 @@
+{
+  "navigationBarTitleText": "Prism 委托",
+  "description": "在对话流中使用 cut card 承接“让棱镜XXX”类的委托请求，不打开全屏面板。卡片将任务委托给远程开发智能体（Codex、Claude Code、OpenCode、OpenClaw、Hermes 等），显示发送和回复进度。request 传入用户原话，保留项目名、目录和新开会话的要求。",
+  "schema": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "string",
+          "description": "用户的委托请求原文，例如“让 Codex 在 prism-api 项目里新开一个会话，检查接口”。"
+        }
+      },
+      "required": ["request"]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"agentName":"Prism Opus Probe","agentDesc":"Prism audio transport test","permissions":["RECORD_AUDIO","INTERNET"],"pages":["pages/voice/index"]}

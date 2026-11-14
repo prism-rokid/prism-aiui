@@ -13,7 +13,7 @@ import {
   INITIAL_CHAT_ITEMS, INITIAL_CHAT_LAYOUT, INITIAL_CHAT_ANCHORS,
   INITIAL_CHAT_FOCUS_INDEX, INITIAL_CHAT_LOADED_START_INDEX, INITIAL_CHAT_LOADED_PROGRESS_INDEX
 } from '../../lib/prism-chat-model.js';
-import { LIST_DEFAULT_VIEWPORT_HEIGHT, STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
+import { STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
 import { MENU_CLASS_HIDDEN } from '../../lib/prism-surfaces.js';
 import { createTouchpadGestureState } from '../../lib/prism-gesture.js';
 import { createBootMethods } from '../../lib/prism-page-boot.js';
@@ -86,7 +86,6 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     INITIAL_CHAT_FOCUS_INDEX,
     INITIAL_CHAT_LOADED_START_INDEX,
     INITIAL_CHAT_LOADED_PROGRESS_INDEX,
-    LIST_DEFAULT_VIEWPORT_HEIGHT,
     STATUS_DOT_PULSE_INTERVAL_MS,
     MENU_CLASS_HIDDEN,
     createTouchpadGestureState,

@@ -222,38 +222,45 @@ test('a single tap on the inbox activates the focused conversation immediately',
   page.closeConversationStream();
 });
 
-test('inbox touchpad taps never request, cancel, or confirm app exit', async () => {
-  const pageSource = await readPageBundle();
-  let exitCalls = 0;
-  const config = await evaluatePageConfig({
-    exitMiniProgram() {
-      exitCalls += 1;
-    }
-  });
-  const page = createPageInstance(config);
-  seedInboxState(page);
-  page.data.surface = 'inbox';
-  page.data.menuVisible = true;
-
-  page.activateFocused = () => {};
-  page.onKeyUp({ code: 'Backspace', preventDefault() {} });
-  assert.equal(page.data.exitPending, true, 'only Backspace starts confirmation');
-
-  const first = Date.now();
-  page.handleSurfaceTap('inbox', first);
-  page.handleSurfaceTap('inbox', first + 120);
-  assert.equal(page.data.exitPending, true, 'touchpad taps leave the confirmation unchanged');
-  assert.equal(exitCalls, 0, 'touchpad taps never exit the app');
-
-  page.onKeyUp({ code: 'Backspace', preventDefault() { assert.fail('confirmation must allow native exit'); } });
-  assert.equal(exitCalls, 0, 'confirmation uses native Backspace, not the wx exit API');
-  assert.equal(page.data.exitPending, false);
-});
-
 function pressArrow(page, code = 'ArrowDown') {
   const step = { code, preventDefault() {} };
   page.onKeyDown(step);
   page.onKeyUp(step);
+}
+
+for (const manuallySelect of [false, true]) {
+  test(`returning to the inbox ${manuallySelect ? 'keeps a manual selection' : 'focuses the first unread result'} after refresh`, async () => {
+    const page = createPageInstance(await evaluatePageConfig());
+    seedInboxState(page);
+    page.data.surface = 'main';
+    page.data.agents.push({ uid: 'h2::p2', host_id: 'h2', plugin_id: 'p2', connected: true, available: true });
+    const cached = { conversation_id: 'conv-b', title: '缓存会话', updated_at: 200 };
+    page._inboxCatalog.set('h2::p2', { items: [cached] });
+    page.rebuildInbox();
+    assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-b');
+
+    let resolveRefresh;
+    page._api.getConversationIndex = () => new Promise((resolve) => { resolveRefresh = resolve; });
+    const returning = page.goToInbox();
+    assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-b');
+    if (manuallySelect) {
+      pressArrow(page);
+      assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+    }
+
+    resolveRefresh({
+      items: [
+        cached,
+        { conversation_id: 'older-unread', updated_at: 300, unread: true },
+        { conversation_id: 'first-unread', updated_at: 400, unread: true }
+      ]
+    });
+    await returning;
+
+    assert.equal(page.data.inboxFocusedItem.conversation_id, manuallySelect ? 'conv-a' : 'first-unread');
+    assert.equal(page.data.focusIndex, manuallySelect ? 3 : 0);
+    assert.equal(page.data.inboxMotion, false);
+  });
 }
 
 test('arrow steps move inbox focus without activating anything', async () => {
@@ -278,9 +285,43 @@ test('arrow steps move inbox focus without activating anything', async () => {
   assert.equal(page.data.focusIndex, 1, 'the arrow step moved focus');
   assert.equal(page.data.surface, 'inbox', 'arrow navigation never enters an item by itself');
   assert.equal(page.data.selectedConversationId, '', 'no conversation was entered');
+  assert.equal(page.data.inboxMotion, true);
+  pressArrow(page);
+  assert.equal(page.data.focusIndex, 1, 'the last card does not wrap');
+  pressArrow(page, 'ArrowUp');
+  pressArrow(page, 'ArrowUp');
+  assert.equal(page.data.focusIndex, 0, 'the first card does not wrap');
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-b');
 
   page.clearConversationLoadingFallback();
   page.closeConversationStream();
+});
+
+test('side card taps select first, and a catalog reorder preserves the selected conversation', async () => {
+  const page = createPageInstance(await evaluatePageConfig());
+  seedInboxState(page);
+  const entry = page._inboxCatalog.get('h1::p1');
+  entry.items.push({ conversation_id: 'conv-b', title: '线程B', updated_at: 200 });
+  page.rebuildInbox();
+  const tap = (id) => ({ currentTarget: { dataset: { id } } });
+  const otherId = page.data.inboxItems[1].id;
+  const opened = [];
+  page.openInboxConversation = async (hostId, pluginId, conversationId) => {
+    opened.push({ hostId, pluginId, conversationId });
+  };
+
+  page.handleInboxTap(tap(otherId));
+  assert.equal(page.data.inboxFocusedItem.id, otherId);
+  assert.equal(page.data.inboxMotion, true);
+  assert.deepEqual(opened, []);
+
+  entry.items[0] = { ...entry.items[0], updated_at: 300 };
+  page.rebuildInbox();
+  assert.equal(page.data.focusIndex, 0);
+  assert.equal(page.data.inboxFocusedItem.id, otherId);
+  assert.equal(page.data.inboxMotion, false);
+  await page.handleInboxTap(tap(otherId));
+  assert.deepEqual(opened, [{ hostId: 'h1', pluginId: 'p1', conversationId: 'conv-a' }]);
 });
 
 test('arrow steps never open the quick menu and never block the following tap', async () => {
@@ -352,26 +393,19 @@ test('a tap right after arrow navigation activates immediately', async () => {
   page.closeConversationStream();
 });
 
-test('back from the conversation returns home; back on the inbox follows the exit confirmation flow', async () => {
-  const pageSource = await readPageBundle();
-  let exitCalls = 0;
-  const config = await evaluatePageConfig({
-    exitMiniProgram() {
-      exitCalls += 1;
-    }
-  });
+test('back from the conversation returns home; back on the inbox allows native exit immediately', async () => {
+  const config = await evaluatePageConfig();
   const page = createPageInstance(config);
   seedInboxState(page);
   page.data.surface = 'main';
   page.data.menuVisible = false;
 
-  page.onKeyUp({ code: 'Backspace', preventDefault() {} });
+  let intercepted = false;
+  page.onKeyUp({ code: 'Backspace', preventDefault() { intercepted = true; } });
+  assert.equal(intercepted, true, 'back from a conversation prevents native exit');
   assert.equal(page.data.surface, 'inbox', 'back from a conversation goes to the inbox');
 
-  page.onKeyUp({ code: 'Backspace', preventDefault() {} });
-  assert.equal(page.data.exitPending, true, 'first back on the inbox requests exit confirmation');
-  page.onKeyUp({ code: 'Backspace', preventDefault() { assert.fail('confirmation must allow native exit'); } });
-  assert.equal(exitCalls, 0, 'second back delegates to the host default');
+  page.onKeyUp({ code: 'Backspace', preventDefault() { assert.fail('first back on the inbox must allow native exit'); } });
 
   await sleep(10);
   page.clearConversationLoadingFallback();

@@ -7,7 +7,7 @@ import { renderFrame } from '../../lib/logo-scan.js';
 import { trace } from '../../lib/prism-trace.js';
 import { CHAT_BOTTOM_ANCHOR_IDS, chatTopSpacerStyle, buildChatProgressSegments, INITIAL_CHAT_ITEMS, INITIAL_CHAT_LAYOUT, INITIAL_CHAT_ANCHORS, INITIAL_CHAT_FOCUS_INDEX, INITIAL_CHAT_LOADED_START_INDEX, INITIAL_CHAT_LOADED_PROGRESS_INDEX, buildInitialChatState } from '../../lib/prism-chat-model.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
-import { LIST_DEFAULT_VIEWPORT_HEIGHT, STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
+import { STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
 import { MENU_CLASS_HIDDEN } from '../../lib/prism-surfaces.js';
 import { createTouchpadGestureState } from '../../lib/prism-gesture.js';
 import { createBootMethods } from '../../lib/prism-page-boot.js';
@@ -53,10 +53,9 @@ export default {
     agents: [],
     agentsSignature: '',
     inboxItems: [],
-    inboxProgressSegments: [],
-    inboxFocusId: '',
-    inboxScrollTop: 0,
-    inboxViewportHeight: LIST_DEFAULT_VIEWPORT_HEIGHT,
+    inboxProgressDots: [],
+    inboxFocusedItem: null,
+    inboxMotion: false,
     controlItems: [],
     controlScope: '',
     currentModelId: '',
@@ -126,8 +125,7 @@ export default {
     toastText: '',
     toastBaseText: '',
     toastCount: 0,
-    toastSeconds: 0,
-    exitPending: false
+    toastSeconds: 0
   },
 
   onLoad(query) {
@@ -183,7 +181,6 @@ export default {
     this._lastArrowPerfAt = 0;
     this._performanceProbeSequence = 0;
     this._gesture = createTouchpadGestureState();
-    this._exitConfirmTimer = null;
     this._agentPollTick = 0;
     this._everConnected = false;
     this._recognition = null;
@@ -266,7 +263,6 @@ export default {
     if (this._statusDotPulseTimer) clearInterval(this._statusDotPulseTimer);
     if (this._toastTimer) clearInterval(this._toastTimer);
     if (this._gesture && this._gesture.longPressTimer) clearTimeout(this._gesture.longPressTimer);
-    if (this._exitConfirmTimer) clearTimeout(this._exitConfirmTimer);
     const recognitionStartCancelled = this.cancelPendingRecognitionStart('page_unload');
     if (!recognitionStartCancelled && this._recognition && this.data.listening) this._recognition.abort();
     trace('page.unload.complete');

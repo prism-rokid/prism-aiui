@@ -61,32 +61,25 @@
       </view>
 
       <view class="prism-inbox-panel" ink:if="{{surface === 'inbox'}}" role="navigation">
-        <view class="prism-list-layout">
-          <view class="prism-list-progress" aria-label="{{text.chat.ariaInboxProgress}}">
-            <view ink:for="{{inboxProgressSegments}}" ink:key="id" class="{{item.className}}"></view>
-          </view>
-          <scroll-view class="prism-inbox-list" scroll-y="true" scroll-top="{{inboxScrollTop}}">
-            <view class="prism-inbox-list-content">
-              <view class="prism-inbox-row" ink:for="{{inboxItems}}" ink:key="id">
-                <view ink:if="{{item.groupLabel}}" class="prism-inbox-group">
-                  <text class="prism-inbox-group-label">{{item.groupLabel}}</text>
-                </view>
-                <button tabindex="0" id="{{item.anchorId}}" data-index="{{item.idx}}" class="{{item.className}}" bindtap="handleInboxTap">
-                  <view class="{{item.statusDotClass}}"></view>
-                  <image class="prism-icon-20 prism-agent-icon prism-inbox-icon" src="{{item.icon}}" />
-                  <view class="prism-inbox-body">
-                    <text class="prism-inbox-label">{{item.label}}</text>
-                    <view class="prism-inbox-meta">
-                      <text class="prism-inbox-project">{{item.projectName}}</text>
-                      <text ink:if="{{item.timeLabel}}" class="prism-inbox-meta-dot">·</text>
-                      <text class="prism-inbox-time">{{item.timeLabel}}</text>
-                    </view>
-                  </view>
-                </button>
-              </view>
-              <view class="prism-inbox-list-tail"></view>
+        <view class="prism-inbox-carousel" ink:if="{{inboxFocusedItem}}">
+          <text class="prism-inbox-day">{{inboxFocusedItem.groupLabel}}</text>
+          <image class="prism-inbox-icon prism-agent-icon" src="{{inboxFocusedItem.icon}}" />
+          <view class="{{inboxMotion ? 'prism-inbox-cards is-moving' : 'prism-inbox-cards'}}">
+            <view class="prism-inbox-card" ink:for="{{inboxItems}}" ink:key="id" style="{{item.cardStyle}}">
+              <button data-id="{{item.id}}" tabindex="{{item.tabIndex}}" class="{{item.className}}" bindtap="handleInboxTap">
+                <text class="prism-inbox-label">{{item.label}}</text>
+              </button>
+              <view class="{{item.statusDotClass}}"></view>
             </view>
-          </scroll-view>
+          </view>
+          <view class="prism-inbox-meta">
+            <text class="prism-inbox-project">{{inboxFocusedItem.projectName}}</text>
+            <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-meta-dot">·</text>
+            <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-time">{{inboxFocusedItem.timeLabel}}</text>
+          </view>
+          <view class="prism-inbox-progress" aria-label="{{text.chat.ariaInboxProgress}}">
+            <view ink:for="{{inboxProgressDots}}" ink:key="id" class="{{item.className}}"></view>
+          </view>
         </view>
       </view>
 
@@ -137,9 +130,9 @@
           </block>
         </view>
 
-        <view class="prism-bottom-tips">
+        <view class="prism-bottom-tips" ink:if="{{surface !== 'inbox'}}">
           <text ink:if="{{unreadCount > 0}}">{{unreadCount}}{{text.chat.unreadPrefix}}</text>
-          <text>{{exitPending ? text.chat.hintExitAgain : (surface === 'main' ? text.chat.hintMain : (surface === 'inbox' ? text.chat.hintInbox : text.chat.hintMenu))}}</text>
+          <text>{{surface === 'main' ? text.chat.hintMain : text.chat.hintMenu}}</text>
         </view>
       </view>
 

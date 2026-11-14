@@ -170,7 +170,7 @@ button {
   display: flex;
   flex-direction: column;
 }
-.prism-chat-progress-segment, .prism-list-progress-segment {
+.prism-chat-progress-segment {
   width: 2px;
   flex-grow: 1;
   flex-shrink: 1;
@@ -181,7 +181,7 @@ button {
   background-color: var(--prism-primary);
   opacity: 0.2;
 }
-.prism-chat-progress-segment.is-current, .prism-list-progress-segment.is-current {
+.prism-chat-progress-segment.is-current {
   background-color: var(--prism-primary);
   opacity: 0.4;
 }
@@ -384,13 +384,24 @@ block {
   background-color: var(--prism-primary-10);
 }
 
-.prism-list-layout { width: 100%; height: 0; min-height: 0; display: flex; flex-grow: 1; flex-shrink: 1; flex-basis: 0; flex-direction: row; box-sizing: border-box; }
-.prism-list-progress { width: 2px; height: 100%; flex-shrink: 0; box-sizing: border-box; margin: 6px 0 6px 3px; display: flex; flex-direction: column; }
-.prism-status-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: var(--radius-md); background-color: var(--prism-primary); opacity: 0; transition-property: opacity; transition-duration: 240ms; transition-timing-function: ease-in-out; }
-.prism-status-dot.is-unread { opacity: 1; }
-.prism-status-dot.is-running { opacity: 0.35; }
-.prism-status-dot.is-pulse-mid { opacity: 0.65; }
-.prism-status-dot.is-pulse-high { opacity: 1; }
+.prism-status-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-md);
+  background-color: var(--prism-primary);
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 240ms;
+  transition-timing-function: ease-in-out;
+}
+.prism-status-dot.is-running { opacity: 0.175; }
+.prism-status-dot.is-pulse-mid { opacity: 0.325; }
+.prism-status-dot.is-unread,
+.prism-status-dot.is-pulse-high { opacity: 0.5; }
 
 .prism-inbox-panel {
   width: 100%;
@@ -406,29 +417,57 @@ block {
   z-index: 11;
   background-color: var(--color-background);
 }
-.prism-inbox-list { width: 100%; height: 100%; min-height: 1px; flex-grow: 1; flex-shrink: 1; flex-basis: auto; }
-.prism-inbox-list-content { width: 100%; display: flex; flex-direction: column; }
-/* Ink renders block as a real view; use an explicit vertical row wrapper so
-   group headers add height above their conversation instead of sitting beside it. */
-/* Keep the item spacing in sync with INBOX_ITEM_GAP for focus scrolling. */
-.prism-inbox-row { width: 100%; display: flex; flex-direction: column; flex-shrink: 0; margin-bottom: 4px; }
-/* The header height must stay in lockstep with INBOX_GROUP_HEADER_HEIGHT:
-   the focus scroll math treats it as a fixed row. */
-.prism-inbox-group { width: 100%; height: 24px; display: flex; flex-shrink: 0; flex-direction: row; align-items: flex-end; box-sizing: border-box; padding: 0 var(--spacing-md) 3px; }
-.prism-inbox-group-label { font-family: sans-serif; font-size: 12px; line-height: 14px; text-align: left; opacity: 0.85; }
-/* Lets the scroll view reach the top-aligned offset of the last rows; it must
-   stay at least as tall as the list viewport. */
-.prism-inbox-list-tail { width: 100%; height: 320px; flex-shrink: 0; }
-/* Rows are a fixed 44px (INBOX_ITEM_HEIGHT); the label must never wrap. */
-.prism-inbox-choice { width: 100%; height: 44px; min-height: 44px; overflow: hidden; display: flex; flex-shrink: 0; flex-direction: row; align-items: center; gap: var(--spacing-sm); box-sizing: border-box; padding: var(--spacing-sm) var(--spacing-md); border: 0.5px solid transparent; }
+
+.prism-inbox-carousel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  padding-top: 72px;
+}
+.prism-inbox-day { font-family: sans-serif; font-size: 28px; line-height: 34px; flex-shrink: 0; opacity: 0.6; }
+.prism-inbox-icon { width: 40px; height: 40px; margin-top: 18px; flex-shrink: 0; }
+.prism-inbox-cards { position: relative; width: 100%; height: 68px; margin-top: 18px; flex-shrink: 0; }
+.prism-inbox-card {
+  /* Cards share the middle slot on the 480px canvas. Each card's position
+     and scale are derived from its index relative to the focused card. */
+  position: absolute;
+  left: 158px;
+  top: 0;
+  width: 164px;
+  height: 68px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible;
+}
+.prism-inbox-choice {
+  width: 100%;
+  height: 68px;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 10px;
+  border: 0.5px solid var(--prism-primary-30);
+  border-radius: var(--radius-md);
+}
+.prism-inbox-cards.is-moving .prism-inbox-card,
+.prism-inbox-cards.is-moving .prism-inbox-choice {
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+.prism-inbox-cards.is-moving .prism-inbox-card { transition-property: transform; }
+.prism-inbox-cards.is-moving .prism-inbox-choice { transition-property: background-color, border-color; }
 .prism-inbox-choice.is-focused { background-color: var(--prism-primary-10); border-color: var(--prism-primary-60); }
-.prism-inbox-icon { flex-shrink: 0; }
-.prism-inbox-body { flex-grow: 1; flex-shrink: 1; flex-basis: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-.prism-inbox-label { font-family: sans-serif; font-size: 14px; line-height: 18px; height: 18px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.prism-inbox-meta { display: flex; flex-direction: row; align-items: center; gap: 4px; min-width: 0; }
-.prism-inbox-project { font-family: sans-serif; font-size: 11px; line-height: 14px; text-align: left; opacity: 0.6; white-space: nowrap; overflow: hidden; }
-.prism-inbox-meta-dot { flex-shrink: 0; font-family: sans-serif; font-size: 11px; line-height: 14px; opacity: 0.45; }
-.prism-inbox-time { flex-shrink: 0; font-size: 11px; line-height: 14px; text-align: left; opacity: 0.6; }
+/* Center the text box. Short titles keep their natural width, while
+   wrapped lines share the left edge of the same box. */
+.prism-inbox-label { width: auto; max-width: 142px; max-height: 40px; overflow: hidden; font-family: sans-serif; font-size: 16px; line-height: 20px; text-align: left; }
+.prism-inbox-meta { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; opacity: 0.65; }
+.prism-inbox-meta text { font-family: sans-serif; font-size: 15px; line-height: 20px; }
+.prism-inbox-meta-dot, .prism-inbox-time { flex-shrink: 0; }
+.prism-inbox-progress { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; }
+.prism-inbox-progress-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: var(--radius-md); background-color: var(--prism-primary); opacity: 0.35; }
+.prism-inbox-progress-dot.is-current { opacity: 1; }
 
 .prism-control-panel {
   width: 100%;

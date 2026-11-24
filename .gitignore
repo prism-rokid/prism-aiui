@@ -1,8 +1,23 @@
+# Local tool state
 .agents/
 skills-lock.json
 .mastergo/
 .aix/
-.DS_Store
-node_modules/
-/env.json
 .zcode/
+
+# Local configuration and operating system files
+.DS_Store
+/env.json
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output
+node_modules/
+/build/
+/dist/
+/coverage/
+/.aiui-build/
+*.aix
+*.log
+*.tmp

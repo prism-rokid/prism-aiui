@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { agentIconFor, createPrismApi, createStreamId, readableError, PRODUCTION_API_BASE_URL } from '../lib/prism-api.js';
+import { createPrismApi, createStreamId, readableError, PRODUCTION_API_BASE_URL } from '../lib/prism-api.js';
 import { setLocale } from '../lib/prism-i18n.js';
 
 // Pin zh-CN: readableError assertions expect Chinese mappings and Node's
@@ -380,11 +380,14 @@ test('new gateway error codes map to current user-facing states', () => {
   assert.equal(readableError({ code: 'missing_required_field' }), '当前会话或请求参数不可用');
 });
 
-test('plugin icons cover every supported agent family', () => {
-  assert.equal(agentIconFor({ plugin_id: 'codex.automation' }), 'codex');
-  assert.equal(agentIconFor({ display_name: 'Claude Code' }), 'claudecode');
-  assert.equal(agentIconFor({ plugin_id: 'hermes.remote' }), 'hermesagent');
-  assert.equal(agentIconFor({ display_name: 'OpenClaw' }), 'openclaw');
-  assert.equal(agentIconFor({ display_name: 'CodeBuddy' }), 'codebuddy');
-  assert.equal(agentIconFor({ display_name: 'Unknown' }), 'openai');
+test('the host plugin list preserves Agent icon URLs from the API', async () => {
+  const items = [
+    { plugin_id: 'custom', icon_url: 'https://example.test/custom.png?version=2' },
+    { plugin_id: 'without-icon' }
+  ];
+  const api = createPrismApi(mockWx((options) => {
+    options.success({ statusCode: 200, data: { success: true, data: { items } } });
+  }), { baseUrl: 'https://prism.example' });
+
+  assert.deepEqual((await api.getHostPlugins()).items, items);
 });

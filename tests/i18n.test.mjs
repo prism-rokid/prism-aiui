@@ -138,5 +138,5 @@ test('buildTextMap expands dotted keys into a tree for WXML bindings', () => {
   const map = buildTextMap();
   assert.equal(map.chat.ariaChatProgress, '对话滚动进度');
   assert.equal(map.common.appName, 'Prism 棱镜面板');
-  assert.equal(map.chat.hintInbox, '单击进入');
+  assert.equal(map.chat.ariaInboxProgress, '新消息滚动进度');
 });

@@ -143,13 +143,15 @@ test('a normal request reuses only a conversation in the named project', async (
   assert.deepEqual(writes[0].slice(0, 4), ['send', 'work', 'codex', 'api-old']);
 });
 
-test('a model-selected conversation must belong to both the selected project and agent', async () => {
+test('an unmatched conversation opens a new one in the selected agent and project', async () => {
   const mismatches = [
     { conversation_id: 'panel-old', agent_key: 'work::codex' },
-    { conversation_id: 'api-old', agent_key: 'work::claudecode' }
+    { conversation_id: 'api-old', agent_key: 'work::claudecode' },
+    { conversation_id: 'missing', agent_key: 'work::codex' }
   ];
+  const request = '在接口项目里检查接口';
   for (const mismatch of mismatches) {
-    const { writes, terminal } = await run('继续上次的接口任务', {
+    const { writes, terminal } = await run(request, {
       agents: [codex, claude],
       index: (_host, plugin) => plugin === codex.plugin_id
         ? [panelThread, apiThread] : [{ ...apiThread, conversation_id: 'claude-api' }],
@@ -158,9 +160,27 @@ test('a model-selected conversation must belong to both the selected project and
         return { action: 'reuse', project_key: project.project_key, ...mismatch };
       }
     });
-    assert.deepEqual(writes, []);
-    assert.equal(terminal.detail.code, 'intentUnavailable');
+    const plugin = mismatch.agent_key.split('::')[1];
+    assert.deepEqual(writes.map(([operation]) => operation), ['open', 'start']);
+    assert.deepEqual(writes[0], ['open', 'work', plugin, { cwd: apiDirectory }]);
+    assert.deepEqual(writes[1].slice(0, 4), ['start', 'work', plugin, 'draft']);
+    assert.equal(writes[1][4].cwd, apiDirectory);
+    assert.equal(writes[1][4].content, request);
+    assert.equal(terminal.phase, 'done');
   }
+});
+
+test('an unmatched conversation requires a project available to the selected agent', async () => {
+  const { writes, terminal } = await run('在接口项目里检查接口', {
+    agents: [codex, claude],
+    index: (_host, plugin) => plugin === codex.plugin_id ? [apiThread] : [panelThread],
+    model: (prompt) => ({
+      action: 'reuse', agent_key: 'work::claudecode', conversation_id: 'api-old',
+      project_key: prompt.projects.find((item) => item.directory === apiDirectory).project_key
+    })
+  });
+  assert.deepEqual(writes, []);
+  assert.equal(terminal.detail.code, 'projectUnavailable');
 });
 
 test('draft discovery excludes known threads and other directories', async () => {

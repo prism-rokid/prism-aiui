@@ -7,7 +7,9 @@
 
       <view class="prism-main-topbar" ink:if="{{surface !== 'inbox'}}">
         <view class="prism-topbar-title">
-          <image class="prism-icon-20 prism-agent-icon" src="{{currentAgentIcon}}" />
+          <view class="prism-icon-20 prism-agent-icon {{currentAgentAvatar.isPng ? 'is-png' : ''}}">
+            <image ink:if="{{currentAgentAvatar.src}}" class="prism-agent-icon-image" src="{{currentAgentAvatar.src}}" mode="aspectFit" />
+          </view>
           <text class="prism-thread-title">{{threadTitleDisplay}}</text>
         </view>
         <view class="prism-topbar-status">
@@ -43,6 +45,7 @@
                 </view>
               </view>
               <text class="prism-message-meta" ink:elif="{{item.kind === 'assistant_meta'}}">{{item.text}}</text>
+              <text ink:elif="{{item.kind === 'assistant_plan'}}">{{item.text}}</text>
               <streamdown
                 class="prism-streamdown"
                 ink:elif="{{item.kind === 'assistant_markdown'}}"
@@ -61,32 +64,26 @@
       </view>
 
       <view class="prism-inbox-panel" ink:if="{{surface === 'inbox'}}" role="navigation">
-        <view class="prism-list-layout">
-          <view class="prism-list-progress" aria-label="{{text.chat.ariaInboxProgress}}">
-            <view ink:for="{{inboxProgressSegments}}" ink:key="id" class="{{item.className}}"></view>
+        <view class="prism-inbox-carousel" ink:if="{{inboxFocusedItem}}">
+          <view class="prism-inbox-icon prism-agent-icon {{inboxFocusedItem.avatar.isPng ? 'is-png' : ''}}">
+            <image ink:if="{{inboxFocusedItem.avatar.src}}" class="prism-agent-icon-image" src="{{inboxFocusedItem.avatar.src}}" mode="aspectFit" />
           </view>
-          <scroll-view class="prism-inbox-list" scroll-y="true" scroll-top="{{inboxScrollTop}}">
-            <view class="prism-inbox-list-content">
-              <view class="prism-inbox-row" ink:for="{{inboxItems}}" ink:key="id">
-                <view ink:if="{{item.groupLabel}}" class="prism-inbox-group">
-                  <text class="prism-inbox-group-label">{{item.groupLabel}}</text>
-                </view>
-                <button tabindex="0" id="{{item.anchorId}}" data-index="{{item.idx}}" class="{{item.className}}" bindtap="handleInboxTap">
-                  <view class="{{item.statusDotClass}}"></view>
-                  <image class="prism-icon-20 prism-agent-icon prism-inbox-icon" src="{{item.icon}}" />
-                  <view class="prism-inbox-body">
-                    <text class="prism-inbox-label">{{item.label}}</text>
-                    <view class="prism-inbox-meta">
-                      <text class="prism-inbox-project">{{item.projectName}}</text>
-                      <text ink:if="{{item.timeLabel}}" class="prism-inbox-meta-dot">·</text>
-                      <text class="prism-inbox-time">{{item.timeLabel}}</text>
-                    </view>
-                  </view>
-                </button>
-              </view>
-              <view class="prism-inbox-list-tail"></view>
+          <view class="{{inboxMotion ? 'prism-inbox-cards is-moving' : 'prism-inbox-cards'}}">
+            <view class="prism-inbox-card" ink:for="{{inboxItems}}" ink:key="id" style="{{item.cardStyle}}">
+              <button data-id="{{item.id}}" tabindex="{{item.tabIndex}}" class="{{item.className}}" bindtap="handleInboxTap">
+                <text class="prism-inbox-label">{{item.label}}</text>
+              </button>
+              <view class="{{item.statusDotClass}}"></view>
             </view>
-          </scroll-view>
+          </view>
+          <view class="prism-inbox-meta">
+            <text class="prism-inbox-project">{{inboxFocusedItem.projectName}}</text>
+            <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-meta-dot">·</text>
+            <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-time">{{inboxFocusedItem.timeLabel}}</text>
+          </view>
+          <view class="prism-inbox-progress" aria-label="{{text.chat.ariaInboxProgress}}">
+            <view ink:for="{{inboxProgressDots}}" ink:key="id" class="{{item.className}}"></view>
+          </view>
         </view>
       </view>
 
@@ -114,6 +111,23 @@
         </scroll-view>
       </view>
 
+      <view class="prism-plan-review" ink:if="{{surface === 'planReview'}}">
+        <view class="prism-plan-review-header">
+          <text>{{text.review.title}}</text>
+          <text class="prism-plan-review-status" ink:if="{{planReviewBusy}}">{{text.review.submitting}}</text>
+          <text class="prism-plan-review-status" ink:elif="{{!planReviewPending}}">{{text.review.readOnly}}</text>
+        </view>
+        <scroll-view class="{{planReviewOptions ? 'prism-plan-review-body' : 'prism-plan-review-body is-reading'}}" scroll-y="true" scroll-top="{{planReviewTop}}">
+          <streamdown class="prism-streamdown" content="{{planReviewMarkdown}}" font-size="15"></streamdown>
+        </scroll-view>
+        <view class="prism-plan-review-footer">
+          <text class="prism-plan-review-feedback" ink:if="{{planReviewFeedback}}">{{planReviewFeedback}}</text>
+          <view class="prism-plan-review-actions" role="navigation">
+            <button ink:for="{{planReviewActions}}" ink:key="id" tabindex="{{planReviewOptions && item.idx === focusIndex ? 0 : -1}}" disabled="{{item.disabled}}" data-index="{{item.idx}}" class="{{item.className}}" bindtap="handlePlanReviewTap">{{item.label}}</button>
+          </view>
+        </view>
+      </view>
+
       <view class="prism-bottom-stack">
         <view class="prism-draft" ink:if="{{draftText || listening || recognizing}}">
           <text ink:if="{{draftText}}">{{draftText}}</text>
@@ -137,9 +151,12 @@
           </block>
         </view>
 
-        <view class="prism-bottom-tips">
+        <view class="prism-bottom-tips" ink:if="{{surface !== 'inbox' && surface !== 'planReview'}}">
+          <button class="prism-plan-review-entry" ink:if="{{surface === 'main' && planReviewAvailable && !planReviewShortcut}}" bindtap="presentPlanReview">{{text.review.view}}</button>
           <text ink:if="{{unreadCount > 0}}">{{unreadCount}}{{text.chat.unreadPrefix}}</text>
-          <text>{{exitPending ? text.chat.hintExitAgain : (surface === 'main' ? text.chat.hintMain : (surface === 'inbox' ? text.chat.hintInbox : text.chat.hintMenu))}}</text>
+          <button class="prism-plan-review-entry is-direct" ink:if="{{surface === 'main' && planReviewShortcut}}" bindtap="presentPlanReview">{{text.review.tapToOpen}}</button>
+          <text ink:if="{{surface === 'main' && planReviewShortcut}}">{{text.review.holdToTalk}}</text>
+          <text ink:else>{{surface === 'main' ? text.chat.hintMain : text.chat.hintMenu}}</text>
         </view>
       </view>
 

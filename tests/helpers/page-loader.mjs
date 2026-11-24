@@ -6,6 +6,7 @@
 // same source-shape assertions scanned directly.)
 import { readFile } from 'node:fs/promises';
 import { trace } from '../../lib/prism-trace.js';
+import { agentAvatar } from '../../lib/prism-icons.js';
 import { setLocale, initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
 import { buildInitialChatState } from '../../lib/prism-chat-model.js';
 import {
@@ -13,7 +14,7 @@ import {
   INITIAL_CHAT_ITEMS, INITIAL_CHAT_LAYOUT, INITIAL_CHAT_ANCHORS,
   INITIAL_CHAT_FOCUS_INDEX, INITIAL_CHAT_LOADED_START_INDEX, INITIAL_CHAT_LOADED_PROGRESS_INDEX
 } from '../../lib/prism-chat-model.js';
-import { LIST_DEFAULT_VIEWPORT_HEIGHT, STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
+import { STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
 import { MENU_CLASS_HIDDEN } from '../../lib/prism-surfaces.js';
 import { createTouchpadGestureState } from '../../lib/prism-gesture.js';
 import { createBootMethods } from '../../lib/prism-page-boot.js';
@@ -22,6 +23,7 @@ import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
 import { questionMethods } from '../../lib/prism-page-question.js';
+import { planReviewMethods } from '../../lib/prism-plan-review.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
 
 export const pageJsUrl = new URL('../../pages/index/index.js', import.meta.url);
@@ -32,7 +34,7 @@ const libUrls = [
   'prism-inbox-model.js', 'prism-surfaces.js', 'prism-gesture.js',
   'prism-page-boot.js', 'prism-page-sync.js', 'prism-page-stream.js',
   'prism-page-menu.js', 'prism-page-voice.js', 'prism-page-input.js',
-  'prism-page-question.js', 'prism-question.js', 'prism-i18n.js'
+  'prism-page-question.js', 'prism-plan-review.js', 'prism-question.js', 'prism-i18n.js'
 ].map((name) => new URL(`../../lib/${name}`, import.meta.url));
 const packUrls = ['zh-CN'].map((name) => new URL(`../../lib/i18n/${name}.js`, import.meta.url));
 
@@ -77,6 +79,7 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     },
     renderFrame: undefined,
     trace,
+    agentAvatar,
     CHAT_BOTTOM_ANCHOR_IDS,
     chatTopSpacerStyle,
     buildChatProgressSegments,
@@ -86,7 +89,6 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     INITIAL_CHAT_FOCUS_INDEX,
     INITIAL_CHAT_LOADED_START_INDEX,
     INITIAL_CHAT_LOADED_PROGRESS_INDEX,
-    LIST_DEFAULT_VIEWPORT_HEIGHT,
     STATUS_DOT_PULSE_INTERVAL_MS,
     MENU_CLASS_HIDDEN,
     createTouchpadGestureState,
@@ -97,6 +99,7 @@ export async function evaluatePageConfig(wxOverrides = {}, RecognitionClass = cl
     createVoiceMethods,
     inputMethods,
     questionMethods,
+    planReviewMethods,
     initI18n,
     t,
     buildTextMap,

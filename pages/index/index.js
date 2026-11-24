@@ -5,9 +5,10 @@ import { resolveAccountCredential } from '../../lib/prism-device-auth.js';
 import { LOCAL_DEBUG_AUTH } from '../../lib/prism-local-token.js';
 import { renderFrame } from '../../lib/logo-scan.js';
 import { trace } from '../../lib/prism-trace.js';
+import { agentAvatar } from '../../lib/prism-icons.js';
 import { CHAT_BOTTOM_ANCHOR_IDS, chatTopSpacerStyle, buildChatProgressSegments, INITIAL_CHAT_ITEMS, INITIAL_CHAT_LAYOUT, INITIAL_CHAT_ANCHORS, INITIAL_CHAT_FOCUS_INDEX, INITIAL_CHAT_LOADED_START_INDEX, INITIAL_CHAT_LOADED_PROGRESS_INDEX, buildInitialChatState } from '../../lib/prism-chat-model.js';
 import { initI18n, t, buildTextMap } from '../../lib/prism-i18n.js';
-import { LIST_DEFAULT_VIEWPORT_HEIGHT, STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
+import { STATUS_DOT_PULSE_INTERVAL_MS } from '../../lib/prism-inbox-model.js';
 import { MENU_CLASS_HIDDEN } from '../../lib/prism-surfaces.js';
 import { createTouchpadGestureState } from '../../lib/prism-gesture.js';
 import { createBootMethods } from '../../lib/prism-page-boot.js';
@@ -16,6 +17,7 @@ import { createStreamMethods } from '../../lib/prism-page-stream.js';
 import { createMenuMethods } from '../../lib/prism-page-menu.js';
 import { createVoiceMethods } from '../../lib/prism-page-voice.js';
 import { questionMethods } from '../../lib/prism-page-question.js';
+import { planReviewMethods } from '../../lib/prism-plan-review.js';
 import { inputMethods } from '../../lib/prism-page-input.js';
 
 // The page is assembled from method groups; see lib/prism-page-*.js. This
@@ -34,6 +36,7 @@ export default {
   ...voiceMethods,
   ...inputMethods,
   ...questionMethods,
+  ...planReviewMethods,
 
   data: {
     apiBaseUrl: '',
@@ -53,10 +56,9 @@ export default {
     agents: [],
     agentsSignature: '',
     inboxItems: [],
-    inboxProgressSegments: [],
-    inboxFocusId: '',
-    inboxScrollTop: 0,
-    inboxViewportHeight: LIST_DEFAULT_VIEWPORT_HEIGHT,
+    inboxProgressDots: [],
+    inboxFocusedItem: null,
+    inboxMotion: false,
     controlItems: [],
     controlScope: '',
     currentModelId: '',
@@ -66,7 +68,7 @@ export default {
     selectedPluginId: '',
     selectedConversationId: '',
     currentAgentName: 'Agent',
-    currentAgentIcon: '',
+    currentAgentAvatar: agentAvatar(),
     hostLabel: '未连接',
     threadTitle: 'Prism 棱镜面板',
     threadTitleDisplay: 'Prism 棱镜面板',
@@ -111,6 +113,15 @@ export default {
     questionText: '',
     questionReply: '',
     questionPending: false,
+    planReviewAvailable: false,
+    planReviewPending: false,
+    planReviewShortcut: false,
+    planReviewMarkdown: '',
+    planReviewOptions: false,
+    planReviewTop: 0,
+    planReviewActions: [],
+    planReviewFeedback: '',
+    planReviewBusy: false,
     approvalActions: [],
     approvalText: 'Agent 请求批准操作',
     primaryAction: 'send',
@@ -126,14 +137,10 @@ export default {
     toastText: '',
     toastBaseText: '',
     toastCount: 0,
-    toastSeconds: 0,
-    exitPending: false
+    toastSeconds: 0
   },
 
   onLoad(query) {
-    // Build marker: grep this tag in logcat to confirm which build the page
-    // instance is actually serving.
-    console.log('[PrismAIUI]', JSON.stringify({ event: 'build.tag', tag: '20261025-readable-interactions' }));
     trace('page.load.start', { surface: this.data.surface });
     // 委托卡片深链通过 Agent 的会话索引验证目标，命中后直接打开会话。
     this._deepLink = query && query.conversation ? {
@@ -183,7 +190,6 @@ export default {
     this._lastArrowPerfAt = 0;
     this._performanceProbeSequence = 0;
     this._gesture = createTouchpadGestureState();
-    this._exitConfirmTimer = null;
     this._agentPollTick = 0;
     this._everConnected = false;
     this._recognition = null;
@@ -222,6 +228,8 @@ export default {
     this._approval = null;
     this._approvalSignature = '';
     this._inboxCatalog = new Map();
+    this._inboxActivityById = new Map();
+    this._inboxReturnItemId = '';
     this._draftHistory = [];
     this._draftFuture = [];
     this._voiceBaseDraft = '';
@@ -266,7 +274,6 @@ export default {
     if (this._statusDotPulseTimer) clearInterval(this._statusDotPulseTimer);
     if (this._toastTimer) clearInterval(this._toastTimer);
     if (this._gesture && this._gesture.longPressTimer) clearTimeout(this._gesture.longPressTimer);
-    if (this._exitConfirmTimer) clearTimeout(this._exitConfirmTimer);
     const recognitionStartCancelled = this.cancelPendingRecognitionStart('page_unload');
     if (!recognitionStartCancelled && this._recognition && this.data.listening) this._recognition.abort();
     trace('page.unload.complete');

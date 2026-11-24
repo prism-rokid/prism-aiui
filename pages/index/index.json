@@ -1,3 +1,14 @@
 {
-  "navigationBarTitleText": "Prism 棱镜面板"
+  "navigationBarTitleText": "Prism 棱镜面板",
+  "description": "显示桌面智能体的会话列表。传入会话标识时打开对应会话，可查看对话和计划。",
+  "schema": {
+    "data": {
+      "type": "object",
+      "properties": {
+        "host": { "type": "string", "description": "桌面主机标识" },
+        "plugin": { "type": "string", "description": "桌面智能体插件标识" },
+        "conversation": { "type": "string", "description": "要打开的会话标识" }
+      }
+    }
+  }
 }

@@ -141,6 +141,43 @@ test('delegate deep link opens its conversation before the selection write and o
   await boot;
 });
 
+test('delegate fallback keeps activation on the centered card after the inbox reorders', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  let rejectSelection;
+  let resolveOtherIndex;
+  page._deepLink = { hostId: 'h1', pluginId: 'p1', conversationId: 'gone' };
+  page._api = {
+    ...createFakeApi(),
+    getHostPlugins: async () => ({
+      items: [
+        { host_id: 'h1', plugin_id: 'p1', connected: true, available: true },
+        { host_id: 'h2', plugin_id: 'p2', connected: true, available: true }
+      ]
+    }),
+    getConversationIndex: (hostId) => hostId === 'h1'
+      ? Promise.resolve({ items: [...conversations, { conversation_id: 'gone', updated_at: 50 }] })
+      : new Promise((resolve) => { resolveOtherIndex = resolve; }),
+    setSelection: ({ selected_conversation_id: id }) => id === 'gone'
+      ? new Promise((_, reject) => { rejectSelection = reject; })
+      : Promise.resolve({})
+  };
+
+  const boot = page.bootstrap();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(page.data.surface, 'main');
+  resolveOtherIndex({ items: [{ conversation_id: 'conv-b', updated_at: 200 }] });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(page.data.inboxItems[0].conversation_id, 'conv-b');
+  rejectSelection(new Error('conversation not found'));
+  await boot;
+
+  assert.equal(page.data.surface, 'inbox');
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+  await page.activateFocused();
+  assert.equal(page.data.selectedConversationId, 'conv-a');
+});
+
 test('missing delegate conversation falls back to the inbox without activating another conversation', async (t) => {
   const page = createPageInstance(await evaluatePageConfig());
   t.after(() => page.onUnload());
@@ -222,6 +259,33 @@ test('a single tap on the inbox activates the focused conversation immediately',
   page.closeConversationStream();
 });
 
+test('inbox polling refreshes titles when catalog signatures stay the same', async () => {
+  const page = createPageInstance(await evaluatePageConfig());
+  seedInboxState(page);
+  const cached = { conversation_id: 'conv-b', title: 'conv-b', updated_at: 200 };
+  page.data.selectedConversationId = 'conv-a';
+  page.data.conversationsSignature = 'sig-a';
+  page.data.agents.push({ uid: 'h2::p2', host_id: 'h2', plugin_id: 'p2', connected: true, available: true });
+  page._inboxCatalog.set('h2::p2', { signature: 'sig-b', items: [cached] });
+  page.rebuildInbox();
+  pressArrow(page);
+  const focusedId = page.data.inboxFocusedItem.id;
+  page._api.getHostPlugins = async () => ({ changed: false });
+  page._api.getConversationIndex = async (hostId, _pluginId, knownSignature) => {
+    const selected = hostId === 'h1';
+    const signature = selected ? 'sig-a' : 'sig-b';
+    if (knownSignature === signature) return { changed: false, signature, items: [] };
+    const item = selected ? conversations[0] : cached;
+    return { signature, items: [{ ...item, title: selected ? '新标题 A' : '新标题 B' }] };
+  };
+
+  await page.refreshCatalog();
+
+  assert.deepEqual(page.data.inboxItems.map((item) => item.label), ['新标题 B', '新标题 A']);
+  assert.equal(page.data.inboxFocusedItem.id, focusedId);
+  assert.equal(page.data.inboxFocusedItem.label, '新标题 A');
+});
+
 function pressArrow(page, code = 'ArrowDown') {
   const step = { code, preventDefault() {} };
   page.onKeyDown(step);
@@ -297,6 +361,63 @@ test('arrow steps move inbox focus without activating anything', async () => {
   page.closeConversationStream();
 });
 
+test('return restores the opened card without moving it on a metadata-only update', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  seedInboxState(page);
+  const other = { conversation_id: 'conv-b', updated_at: 200, unread: true };
+  page._inboxCatalog.get('h1::p1').items.push(other);
+  page.rebuildInbox();
+  const listedAt = Date.now();
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-b');
+
+  pressArrow(page);
+  await page.activateFocused();
+  assert.equal(page.data.selectedConversationId, 'conv-a');
+  const receiveMessage = (message) => page._api.streams[0].onFrame({
+    type: 'conversation.messages.turn',
+    turn: { messages: [message] }
+  });
+  receiveMessage({ id: 'old', role: 'user', content: '历史消息', created_at: listedAt - 1000 });
+
+  page._api.getHostPlugins = async () => ({ changed: false });
+  page._api.getConversationIndex = async () => ({
+    items: [{ ...conversations[0], updated_at: listedAt }, other]
+  });
+  await page.refreshCatalog();
+  await page.goToInbox();
+
+  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-b', 'conv-a']);
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+  assert.equal(page.data.focusIndex, 1);
+
+  receiveMessage({ id: 'new', role: 'assistant', content: '新消息', created_at: listedAt + 1000 });
+  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-a', 'conv-b']);
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+  assert.equal(page.data.focusIndex, 0);
+});
+
+test('return keeps the opened card focusable when ten newer conversations arrive', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  seedInboxState(page);
+  page.rebuildInbox();
+  await page.activateFocused();
+  page._conversations = [
+    ...conversations,
+    ...Array.from({ length: 10 }, (_, index) => ({ conversation_id: `new-${index}`, updated_at: 200 + index }))
+  ];
+  await page.refreshInboxCatalog();
+  assert.equal(page.data.inboxItems.some((item) => item.conversation_id === 'conv-a'), false);
+
+  await page.goToInbox();
+  assert.equal(page.data.inboxItems.length, 10);
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+  assert.equal(page.data.focusIndex, 9);
+  await page.refreshInboxCatalog();
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+});
+
 test('side card taps select first, and a catalog reorder preserves the selected conversation', async () => {
   const page = createPageInstance(await evaluatePageConfig());
   seedInboxState(page);
@@ -315,7 +436,7 @@ test('side card taps select first, and a catalog reorder preserves the selected 
   assert.equal(page.data.inboxMotion, true);
   assert.deepEqual(opened, []);
 
-  entry.items[0] = { ...entry.items[0], updated_at: 300 };
+  entry.items[0] = { ...entry.items[0], last_message_at: 300 };
   page.rebuildInbox();
   assert.equal(page.data.focusIndex, 0);
   assert.equal(page.data.inboxFocusedItem.id, otherId);

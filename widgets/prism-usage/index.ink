@@ -8,7 +8,7 @@
 
 <script setup>
 import wx from 'wx';
-import { agentIconFor } from '../../lib/prism-api.js';
+import { agentAvatar } from '../../lib/prism-icons.js';
 import { createWidgetRuntime } from '../../lib/prism-widget-runtime.js';
 import {
   conversationCounts,
@@ -21,11 +21,6 @@ import {
 import { t } from '../../lib/prism-i18n.js';
 
 const CAROUSEL_INTERVAL_MS = 5000;
-const DEFAULT_ICON = '../../assets/icons/agent_icon/icon_agent_openai.svg';
-
-function iconPath(agent) {
-  return `../../assets/icons/agent_icon/icon_agent_${agentIconFor(agent)}.svg`;
-}
 
 export default {
   data: {
@@ -38,7 +33,7 @@ export default {
     unreadCount: 0,
     usageAgentUid: '',
     usageAgentName: 'Agent',
-    usageAgentIcon: DEFAULT_ICON,
+    usageAgentAvatar: agentAvatar(),
     usageRows: usageRows(null)
   },
 
@@ -93,19 +88,10 @@ export default {
   },
 
   applyUsageAgent(candidate) {
-    if (!candidate) {
-      this.setData({
-        usageAgentUid: '',
-        usageAgentName: 'Agent',
-        usageAgentIcon: DEFAULT_ICON,
-        usageRows: usageRows(null)
-      });
-      return;
-    }
     this.setData({
-      usageAgentUid: candidate.uid,
-      usageAgentName: candidate.displayName,
-      usageAgentIcon: iconPath(candidate),
+      usageAgentUid: candidate?.uid || '',
+      usageAgentName: candidate?.displayName || 'Agent',
+      usageAgentAvatar: agentAvatar(candidate),
       usageRows: usageRows(candidate)
     });
   },
@@ -123,7 +109,9 @@ export default {
     <text class="widget-state-label" ink:elif="{{loading}}">{{syncingLabel}}</text>
     <view class="widget-body" ink:else>
       <view class="widget-agent-heading">
-        <image class="agent-icon" src="{{usageAgentIcon}}" />
+        <view class="agent-icon {{usageAgentAvatar.isPng ? 'is-png' : ''}}">
+          <image ink:if="{{usageAgentAvatar.src}}" class="agent-icon-image" src="{{usageAgentAvatar.src}}" mode="aspectFit" />
+        </view>
         <text class="agent-name">{{usageAgentName}}</text>
       </view>
       <view class="widget-usage-list">
@@ -191,14 +179,24 @@ export default {
   flex-direction: row;
   align-items: center;
   gap: 7px;
-  opacity: 0.6;
   min-width: 0;
 }
 
-.agent-icon { width: 25px; height: 25px; flex-shrink: 0; }
+.agent-icon {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  opacity: 0.8;
+  border-radius: 12px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.agent-icon.is-png { padding: 2px; background-color: #FFFFFF; }
+.agent-icon-image { width: 100%; height: 100%; }
 
 .agent-name {
   min-width: 0;
+  opacity: 0.6;
   font-family: monospace;
   font-size: 22px;
   line-height: 25px;

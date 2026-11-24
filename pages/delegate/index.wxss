@@ -83,11 +83,7 @@
   height: 10px;
 }
 
-.delegate-ind-dot-done {
-  background-color: var(--delegate-primary);
-  color: var(--color-background);
-}
-
+.delegate-ind-dot-done,
 .delegate-ind-dot-active {
   border: 2px solid var(--delegate-primary);
   box-sizing: border-box;

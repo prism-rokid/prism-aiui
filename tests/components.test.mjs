@@ -46,10 +46,10 @@ test('manual focus rings use 60 percent borders while preserving icon feedback',
   assert.match(page, /\.prism-menu-button\.is-focused\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)[^}]*border-color:\s*var\(--prism-primary-60\)/s);
   assert.match(page, /\.prism-control-choice\.is-focused\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)[^}]*border-color:\s*var\(--prism-primary-60\)/s);
   assert.match(page, /\.prism-inbox-choice\.is-focused\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)[^}]*border-color:\s*var\(--prism-primary-60\)/s);
-  assert.match(page, /class="prism-icon-20 prism-agent-icon" src="\{\{currentAgentIcon\}\}"/);
-  assert.match(page, /class="prism-inbox-icon prism-agent-icon" src="\{\{inboxFocusedItem\.icon\}\}"/);
+  assert.match(page, /class="prism-icon-20 prism-agent-icon [^"]+"/);
+  assert.match(page, /class="prism-inbox-icon prism-agent-icon [^"]+"/);
   assert.match(page, /\.prism-lucide-icon\s*\{[^}]*opacity:\s*1/s);
-  assert.match(page, /\.prism-agent-icon\s*\{[^}]*opacity:\s*1/s);
+  assert.match(page, /\.prism-agent-icon\s*\{[^}]*opacity:\s*0\.8;/s);
   assert.match(page, /unread: plugin\.status === 'waiting_approval'/);
   assert.match(page, /unread: Boolean\(conversation\.unread\)/);
 });
@@ -153,14 +153,6 @@ test('main screen declares critical Ink CSS flex rows explicitly', async () => {
       `${selector} should declare display:flex directly`
     );
   }
-});
-
-test('the carousel date is larger than the conversation type scale', async () => {
-  const page = await readPageBundle();
-  const fontSizes = [...page.matchAll(/font-size:\s*(\d+)px/g)].map((match) => Number(match[1]));
-
-  assert.match(page, /\.prism-inbox-day\s*\{[^}]*font-size:\s*28px/s);
-  assert.deepEqual([...new Set(fontSizes)].sort((a, b) => a - b), [12, 13, 14, 15, 16, 28]);
 });
 
 test('conversation layout uses compact rounded rectangular user bubbles', async () => {
@@ -280,8 +272,8 @@ test('inbox renders stable card nodes, focused metadata, and position dots', asy
 
   assert.match(page, /class="prism-inbox-card" ink:for="{{inboxItems}}" ink:key="id" style="{{item.cardStyle}}"/);
   assert.match(page, /data-id="{{item.id}}"[^>]*bindtap="handleInboxTap"/);
-  assert.match(page, /class="prism-inbox-day">{{inboxFocusedItem.groupLabel}}/);
-  assert.match(page, /src="{{inboxFocusedItem.icon}}"/);
+  assert.doesNotMatch(page, /prism-inbox-day|inboxFocusedItem\.groupLabel/);
+  assert.match(page, /src="\{\{inboxFocusedItem\.avatar\.src\}\}"/);
   assert.match(page, /class="prism-inbox-label">{{item.label}}/);
   assert.match(page, /<\/button>\s*<view class="{{item.statusDotClass}}"><\/view>[\s\S]*?class="prism-inbox-meta"/);
   assert.match(page, /class="prism-inbox-project">{{inboxFocusedItem.projectName}}/);
@@ -314,21 +306,21 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
   Date.now = () => anchoredNow.getTime();
   const now = anchoredNow.getTime();
   try {
-    instance.data.agents = [
-      { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: '../../assets/icons/agent_icon/icon_agent_codex.svg' },
-      { uid: 'host-2::claude', host_id: 'host-2', plugin_id: 'claude', icon: '../../assets/icons/agent_icon/icon_agent_claude.svg' }
-    ];
+    instance.applyHostPlugins({ items: [
+      { host_id: 'host-1', plugin_id: 'codex', icon_url: 'https://example.test/codex.webp' },
+      { host_id: 'host-2', plugin_id: 'claude', icon_url: 'https://example.test/claude.png' }
+    ] });
     instance._inboxCatalog.set('host-1::codex', {
       signature: 'sig-1',
       items: [
-        { conversation_id: 'c-old', title: '旧线程', cwd: '/workspace/old', status: 'idle', updated_at: now - 26 * 3600 * 1000, unread: false },
-        { conversation_id: 'c-new', title: '新线程\n含换行', cwd: '/workspace/new', status: 'running', updated_at: now - 130 * 1000, unread: true }
+        { conversation_id: 'c-old', title: '旧线程', cwd: '/workspace/old', status: 'idle', last_activity_at: new Date(now - 26 * 3600 * 1000).toISOString(), updated_at: now, unread: false },
+        { conversation_id: 'c-new', title: '新线程\n含换行', cwd: '/workspace/new', status: 'running', last_message_at: String((now - 130 * 1000) / 1000), unread: true }
       ]
     });
     instance._inboxCatalog.set('host-2::claude', {
       signature: 'sig-2',
       items: [
-        { conversation_id: 'c-mid', title: '中间线程', cwd: '/workspace/mid', status: 'idle', updated_at: now - 2 * 3600 * 1000, unread: true }
+        { conversation_id: 'c-mid', title: '中间线程', cwd: '/workspace/mid', status: 'idle', last_message_at: 'invalid', updated_at: (now - 2 * 3600 * 1000) / 1000, unread: true }
       ]
     });
     instance._inboxCatalog.set('host-9::gone', {
@@ -338,10 +330,9 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
 
     const items = instance.rebuildInbox();
     assert.deepEqual(items.map((item) => item.conversation_id), ['c-new', 'c-mid', 'c-old']);
-    assert.deepEqual(items.map((item) => item.groupLabel), ['今天', '今天', '昨天']);
     assert.equal(items[0].id, 'inbox:host-1::codex:c-new');
-    assert.equal(items[0].icon, '../../assets/icons/agent_icon/icon_agent_codex.svg');
-    assert.equal(items[1].icon, '../../assets/icons/agent_icon/icon_agent_claude.svg');
+    assert.deepEqual(items[0].avatar, { src: 'https://example.test/codex.webp', isPng: false });
+    assert.deepEqual(items[1].avatar, { src: 'https://example.test/claude.png', isPng: true });
     assert.equal(items[0].projectName, 'new');
     assert.equal(items[0].label, '新线程 含换行');
     assert.equal(items[0].timeLabel, '2分钟前');
@@ -361,14 +352,12 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
     assert.equal(capped.length, 10);
     assert.equal(capped[0].conversation_id, 'c-0');
     assert.equal(capped[9].conversation_id, 'c-9');
-    assert.ok(capped.every((item) => item.groupLabel === '今天'));
   } finally {
     Date.now = realDateNow;
   }
 });
 
-test('carousel metadata follows focus across dates and refreshes after midnight', async () => {
-  const page = await readPageBundle();
+test('carousel relative time follows focus and refreshes after midnight', async () => {
   const config = await evaluatePageConfig();
   const instance = createInboxInstance(config);
   const anchoredNow = new Date();
@@ -378,9 +367,9 @@ test('carousel metadata follows focus across dates and refreshes after midnight'
   const now = anchoredNow.getTime();
   try {
     instance.setData({ surface: 'inbox' });
-    instance.data.agents = [
-      { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: 'icon-codex' }
-    ];
+    instance.applyHostPlugins({ items: [
+      { host_id: 'host-1', plugin_id: 'codex', icon_url: 'https://example.test/codex.svg' }
+    ] });
     instance._inboxCatalog.set('host-1::codex', {
       signature: 'sig-1',
       items: [
@@ -392,19 +381,19 @@ test('carousel metadata follows focus across dates and refreshes after midnight'
     });
 
     instance.rebuildInbox();
-    assert.equal(instance.data.inboxFocusedItem.groupLabel, '今天');
+    assert.equal(instance.data.inboxFocusedItem.timeLabel, '1分钟前');
     instance.moveSurfaceFocus(1);
-    assert.equal(instance.data.inboxFocusedItem.groupLabel, '今天');
+    assert.equal(instance.data.inboxFocusedItem.timeLabel, '2分钟前');
     instance.moveSurfaceFocus(1);
-    assert.equal(instance.data.inboxFocusedItem.groupLabel, '昨天');
-    assert.equal(instance.data.inboxFocusedItem.icon, 'icon-codex');
+    assert.equal(instance.data.inboxFocusedItem.timeLabel, '昨天');
+    assert.equal(instance.data.inboxFocusedItem.avatar.src, 'https://example.test/codex.svg');
     assert.equal(instance.data.inboxFocusedItem.projectName, 'p');
 
     Date.now = () => now + 13 * 3600 * 1000;
     instance.refreshInboxTimeLabels();
     assert.equal(instance.data.focusIndex, 2);
     assert.equal(instance.data.inboxFocusedItem.conversation_id, 'c-yesterday');
-    assert.equal(instance.data.inboxFocusedItem.groupLabel, '更早之前');
+    assert.equal(instance.data.inboxFocusedItem.timeLabel, '1天前');
   } finally {
     Date.now = realDateNow;
   }
@@ -438,7 +427,7 @@ test('inbox opens with focus on the first unread thread and keeps focus across r
   const instance = createInboxInstance(config);
   const now = Date.now();
   instance.data.agents = [
-    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: 'icon-codex' }
+    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex' }
   ];
   instance._inboxCatalog.set('host-1::codex', {
     signature: 'sig-1',
@@ -507,7 +496,7 @@ test('opening inbox refreshes the catalog before rendering its list', async () =
   instance.data.selectedHostId = 'host-1';
   instance.data.selectedPluginId = 'codex';
   instance.data.agents = [
-    { uid: 'host-2::claude', host_id: 'host-2', plugin_id: 'claude', icon: 'icon-claude', connected: true, available: true }
+    { uid: 'host-2::claude', host_id: 'host-2', plugin_id: 'claude', connected: true, available: true }
   ];
 
   await instance.goToInbox();
@@ -571,7 +560,7 @@ test('marking a conversation read clears its inbox unread dot optimistically', a
   const instance = createInboxInstance(config);
   const now = Date.now();
   instance.data.agents = [
-    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: 'icon-codex' }
+    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex' }
   ];
   instance._inboxCatalog.set('host-1::codex', {
     signature: 'sig-1',
@@ -740,9 +729,9 @@ test('inbox catalog refresh fetches other agents and keeps stale data on pending
   instance.data.conversationsSignature = 'sig-selected';
   instance.data.conversations = [{ conversation_id: 'c-1', title: '本地', cwd: '/p', status: 'idle', updated_at: now - 1000, unread: false }];
   instance.data.agents = [
-    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: 'icon-codex', connected: true, available: true },
-    { uid: 'host-2::claude', host_id: 'host-2', plugin_id: 'claude', icon: 'icon-claude', connected: true, available: true },
-    { uid: 'host-3::codex', host_id: 'host-3', plugin_id: 'codex', icon: 'icon-codex', connected: true, available: true }
+    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', connected: true, available: true },
+    { uid: 'host-2::claude', host_id: 'host-2', plugin_id: 'claude', connected: true, available: true },
+    { uid: 'host-3::codex', host_id: 'host-3', plugin_id: 'codex', connected: true, available: true }
   ];
   instance._inboxCatalog.set('host-3::codex', {
     signature: 'sig-3-old',
@@ -772,7 +761,7 @@ test('inbox catalog keeps the selected Agent cache while its active index is tem
   instance.data.selectedHostId = 'host-1';
   instance.data.selectedPluginId = 'codex';
   instance.data.agents = [
-    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', icon: 'icon-codex', connected: true, available: true }
+    { uid: 'host-1::codex', host_id: 'host-1', plugin_id: 'codex', connected: true, available: true }
   ];
   instance._conversations = [];
   instance._inboxCatalog.set('host-1::codex', {
@@ -1010,7 +999,8 @@ test('the recording stop menu is non-focusable so focus-driven ASR keeps running
 test('bottom tip is static copy describing the per-surface gestures', async () => {
   const page = await readPageBundle();
 
-  assert.match(page, /<view class="prism-bottom-tips" ink:if="{{surface !== 'inbox'}}">/);
+  assert.match(page, /<view class="prism-bottom-tips" ink:if="{{surface !== 'inbox' && surface !== 'planReview'}}">/);
+  assert.doesNotMatch(page, /review\.(?:readHint|optionHint)/);
   assert.doesNotMatch(page, /bindtap="handleMenuTipTap"/);
   assert.doesNotMatch(page, /handleMenuTipTap/);
   assert.match(page, /长按语音输入/);
@@ -1606,21 +1596,18 @@ test('main page drops persisted conversations missing from the plugin index', as
   assert.match(page, /rejectedConversation/);
 });
 
-test('main page uses local themed SVGs for Agent avatars and menu icons', async () => {
-  const api = await readFile(new URL('../lib/prism-api.js', import.meta.url), 'utf8');
+test('main page renders remote Agent avatars and local menu icons', async () => {
   const page = await readPageBundle();
 
-  for (const icon of ['codex', 'claudecode', 'claude', 'openclaw', 'codebuddy', 'hermesagent', 'openai']) {
-    assert.match(api, new RegExp(`['\"]${icon}['\"]`));
-  }
-  // Avatars and menu icons resolve to bundled SVGs with the theme color baked in:
-  // the remote fetch / data URL pipeline rendered black on real hardware.
-  assert.match(page, /function iconPath\(agent\)\s*\{\s*return `\.\.\/\.\.\/assets\/icons\/agent_icon\/icon_agent_\$\{agentIconFor\(agent\)\}\.svg`;/s);
+  assert.doesNotMatch(page, /assets\/icons\/agent_icon\//);
   assert.match(page, /function menuIconPath\(name\)\s*\{\s*return `\.\.\/\.\.\/assets\/icons\/menu_icon\/icon_menu_\$\{name\}\.svg`;/s);
   assert.doesNotMatch(page, /themedAgentSvgDataUrl|requestSvgText|refreshAgentIcons|data:image\/svg\+xml;base64/);
   assert.doesNotMatch(page, /LUCIDE_ICON_CDN_ROOT/);
   assert.doesNotMatch(page, /\.prism-agent-icon\s*\{[^}]*filter:/s);
-  assert.match(page, /class="prism-icon-20 prism-agent-icon" src="\{\{currentAgentIcon\}\}"/);
+  assert.match(page, /class="prism-agent-icon-image" src="\{\{currentAgentAvatar\.src\}\}" mode="aspectFit"/);
+  assert.match(page, /class="prism-agent-icon-image" src="\{\{inboxFocusedItem\.avatar\.src\}\}" mode="aspectFit"/);
+  assert.match(page, /\.prism-agent-icon\s*\{[^}]*border-radius:\s*12px[^}]*overflow:\s*hidden/s);
+  assert.match(page, /\.prism-agent-icon\.is-png\s*\{[^}]*background-color:\s*#FFFFFF/s);
   assert.match(page, /send: 'send'[\s\S]*stop: 'square'[\s\S]*stopVoice: 'square'[\s\S]*voice: 'mic'/);
   assert.match(page, /function decorateMenu[\s\S]*showLabel: index === focusIndex/);
   assert.match(page, /<image class="prism-icon-14 prism-lucide-icon" src="\{\{item\.icon\}\}" \/>[\s\S]*<text ink:if="\{\{item\.showLabel\}\}">\{\{item\.label\}\}<\/text>/);
@@ -1628,29 +1615,31 @@ test('main page uses local themed SVGs for Agent avatars and menu icons', async 
   assert.doesNotMatch(page, /assets\/icons\/folder-(?:open|closed)\.svg/);
 });
 
-test('bundled agent avatars exist with the theme green baked in', async () => {
-  const { iconPath } = await import('../lib/prism-icons.js');
-
-  for (const name of ['codex', 'claudecode', 'claude', 'openclaw', 'codebuddy', 'hermesagent', 'openai']) {
-    const relative = iconPath({ plugin_id: name });
-    assert.equal(relative, `../../assets/icons/agent_icon/icon_agent_${name}.svg`);
-    // Relative asset paths in the page resolve against the page's directory.
-    const svg = await readFile(new URL(relative, new URL('../pages/index/', import.meta.url)), 'utf8');
-    assert.match(svg, /#40FF5E/i, `${name} avatar must bake the theme green`);
-    assert.doesNotMatch(svg, /currentColor|1em/, `${name} avatar must not depend on inherited color or em sizing`);
-    assert.match(svg, /width="40"/, `${name} avatar must rasterize at the 40px carousel size`);
-    assert.match(svg, /height="40"/, `${name} avatar must rasterize at the 40px carousel size`);
+test('the selected Agent avatar follows the API URL and its PNG background follows the pathname', async () => {
+  const instance = createInboxInstance(await evaluatePageConfig());
+  instance.data.selectedHostId = 'host';
+  instance.data.selectedPluginId = 'custom';
+  const cases = [
+    [' https://example.test/avatar.PNG?version=2#asset ', 'https://example.test/avatar.PNG?version=2#asset', true],
+    ['https://example.test/avatar.svg?filename=other.png', 'https://example.test/avatar.svg?filename=other.png', false],
+    ['../../assets/avatar.png', '', false],
+    [undefined, '', false]
+  ];
+  for (const [icon_url, src, isPng] of cases) {
+    const [agent] = instance.applyHostPlugins({ items: [{ host_id: 'host', plugin_id: 'custom', icon_url }] });
+    assert.deepEqual(agent.avatar, { src, isPng });
+    assert.deepEqual(instance.data.currentAgentAvatar, agent.avatar);
   }
 });
 
-test('bundled menu icons exist with the theme green baked in', async () => {
+test('bundled menu icons exist with white baked in', async () => {
   const { menuIconPath } = await import('../lib/prism-icons.js');
 
   for (const name of ['shield-check', 'redo-2', 'rotate-ccw', 'send', 'square', 'undo-2', 'mic', 'circle']) {
     const relative = menuIconPath(name);
     assert.equal(relative, `../../assets/icons/menu_icon/icon_menu_${name}.svg`);
     const svg = await readFile(new URL(relative, new URL('../pages/index/', import.meta.url)), 'utf8');
-    assert.match(svg, /#40FF5E/i, `${name} menu icon must bake the theme green`);
+    assert.match(svg, /#FFFFFF/i, `${name} menu icon must bake white`);
     assert.doesNotMatch(svg, /currentColor|1em/, `${name} menu icon must not depend on inherited color or em sizing`);
     assert.match(svg, /width="14"/, `${name} menu icon must carry a fixed 14px size`);
   }

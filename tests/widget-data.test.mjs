@@ -47,6 +47,49 @@ test('用量轮播保持当前 Agent，并在当前项消失后回退', () => {
   assert.equal(shouldRotateUsageCandidates([candidates[0]]), false);
 });
 
+test('用量小组件在轮播和刷新时同步更新图片地址和 PNG 白底', async () => {
+  const widgetUrl = new URL('../widgets/prism-usage/index.ink', import.meta.url);
+  const widget = await readFile(widgetUrl, 'utf8');
+  const source = widget.match(/<script setup>([\s\S]*?)<\/script>/)[1]
+    .replace("import wx from 'wx';", 'const wx = {};')
+    .replace(/from '(\.\.[^']+)'/g, (_, path) => `from '${new URL(path, widgetUrl).href}'`);
+  const { default: config } = await import(`data:text/javascript,${encodeURIComponent(source)}`);
+  const instance = {
+    ...config,
+    data: { ...config.data },
+    setData(patch) { Object.assign(this.data, patch); }
+  };
+  const agent = (id, icon_url) => ({
+    ...plugin(id, { five_hour: { used_percent: 10, window_minutes: 300, resets_at: 1_795_514_400 } }),
+    icon_url
+  });
+  const refresh = (plugins) => instance.applySnapshot({ status: 'ready', plugins, records: [] });
+  const assertAvatar = (name, src, isPng) => {
+    assert.equal(instance.data.usageAgentName, name);
+    assert.deepEqual(instance.data.usageAgentAvatar, { src, isPng });
+  };
+
+  assertAvatar('Agent', '', false);
+  refresh([agent('Dot', 'https://example.test/dot.PNG?rev=1'), agent('OpenClaw')]);
+  assertAvatar('Dot', 'https://example.test/dot.PNG?rev=1', true);
+  instance.advanceUsageAgent();
+  assertAvatar('OpenClaw', '', false);
+  instance.advanceUsageAgent();
+  assertAvatar('Dot', 'https://example.test/dot.PNG?rev=1', true);
+  refresh([agent('Dot', 'https://example.test/dot.webp')]);
+  assertAvatar('Dot', 'https://example.test/dot.webp', false);
+  refresh([agent('Dot', 'https://example.test/dot.svg')]);
+  assertAvatar('Dot', 'https://example.test/dot.svg', false);
+  refresh([agent('Dot', '../../assets/dot.png')]);
+  assertAvatar('Dot', '', false);
+  refresh([]);
+  assertAvatar('Agent', '', false);
+
+  assert.match(widget, /<image ink:if="\{\{usageAgentAvatar\.src\}\}"[^>]*mode="aspectFit"/);
+  assert.match(widget, /\.agent-icon\s*\{[^}]*opacity:\s*0\.8;[^}]*border-radius:\s*12px[^}]*overflow:\s*hidden/s);
+  assert.match(widget, /\.agent-icon\.is-png\s*\{[^}]*background-color:\s*#FFFFFF/s);
+});
+
 test('重置时间兼容秒和毫秒时间戳', () => {
   const date = new Date(2026, 8, 6, 10, 11, 0).getTime();
   assert.equal(normalizeEpochMilliseconds(Math.floor(date / 1000)), date);

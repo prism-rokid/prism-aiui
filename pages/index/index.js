@@ -44,8 +44,8 @@ export default {
     connected: false,
     configured: false,
     connectionGuideVisible: false,
+    connectionChecking: false,
     loading: false,
-    inboxLoading: false,
     surface: 'inbox',
     menuVisible: false,
     menuClass: MENU_CLASS_HIDDEN,
@@ -58,6 +58,7 @@ export default {
     inboxItems: [],
     inboxProgressDots: [],
     inboxFocusedItem: null,
+    inboxAvatarLayers: [],
     inboxMotion: false,
     controlItems: [],
     controlScope: '',
@@ -179,7 +180,7 @@ export default {
     this._pageActive = true;
     this._api = null;
     this._pollTimer = null;
-    this._pollInFlight = false;
+    this._pollInFlight = null;
     this._inboxTimeTimer = null;
     this._statusDotPulseTimer = null;
     this._statusDotPulsePhase = 0;
@@ -237,20 +238,19 @@ export default {
     this._loaderSpinTimer = null;
     this._loaderSpinPhase = 0;
     this._loaderSpinCtx = null;
-    this._configurationPromise = this.hydrateConfiguration();
+    const configuration = this.hydrateConfiguration();
     this.setupRecognition();
     this._inboxTimeTimer = setInterval(() => this.refreshInboxTimeLabels(), 30000);
     this._statusDotPulseTimer = setInterval(() => this.refreshStatusDotPulse(), STATUS_DOT_PULSE_INTERVAL_MS);
     this.rebuildMenu();
-    this._configurationPromise.then(() => {
+    configuration.then(() => {
       if (this._pageActive === false) return;
       if (this.data.configured) {
         trace('page.load.bootstrap');
         this.bootstrap();
       } else {
         trace('page.load.not_configured');
-        this.setConnectionGuide(true);
-        this.showToast(this.data.apiBaseUrl ? t('boot.deviceAuthFailed') : t('api.error.baseUrlMissing'), 6);
+        this.showConnectionAuthFailure();
       }
       trace('page.load.ready', { configured: this.data.configured, pollInterval: this.data.pollInterval });
     });
@@ -303,10 +303,33 @@ export default {
     this.stopLoaderSpin();
   },
 
+  async retryConnection() {
+    if (!this.data.connectionGuideVisible || this.data.connectionChecking || this._bootstrapping) return;
+    this.setData({ connectionChecking: true });
+    if (this.data.toastVisible) this.dismissToast();
+    try {
+      if (this._pollInFlight) await this._pollInFlight;
+      if (this._pageActive === false || !this.data.connectionGuideVisible) return;
+      const wasConfigured = this.data.configured;
+      const configured = await this.hydrateConfiguration();
+      if (this._pageActive === false) return;
+      if (!configured) {
+        this.stopPolling();
+        this.showConnectionAuthFailure();
+      } else if (wasConfigured) {
+        await this.refreshCatalog({ force: true });
+      } else {
+        await this.bootstrap();
+      }
+    } finally {
+      if (this._pageActive !== false) this.setData({ connectionChecking: false });
+    }
+  },
+
   hydrateConfiguration() {
     trace('config.hydrate.start');
     const pollInterval = Number(this.data.pollInterval) || 3000;
-    this._clientInstanceId = createStreamId('client');
+    this._clientInstanceId ||= createStreamId('client');
     this.setData({ pollInterval, configured: false });
     // Shared auth uses Open Service, then the pack-time token injected only
     // into real-device debug builds.

@@ -47,7 +47,7 @@ test('manual focus rings use 60 percent borders while preserving icon feedback',
   assert.match(page, /\.prism-control-choice\.is-focused\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)[^}]*border-color:\s*var\(--prism-primary-60\)/s);
   assert.match(page, /\.prism-inbox-choice\.is-focused\s*\{[^}]*background-color:\s*var\(--prism-primary-10\)[^}]*border-color:\s*var\(--prism-primary-60\)/s);
   assert.match(page, /class="prism-icon-20 prism-agent-icon [^"]+"/);
-  assert.match(page, /class="prism-inbox-icon prism-agent-icon [^"]+"/);
+  assert.match(page, /class="prism-inbox-avatar-layer prism-agent-icon [^"]+"/);
   assert.match(page, /\.prism-lucide-icon\s*\{[^}]*opacity:\s*1/s);
   assert.match(page, /\.prism-agent-icon\s*\{[^}]*opacity:\s*0\.8;/s);
   assert.match(page, /unread: plugin\.status === 'waiting_approval'/);
@@ -273,7 +273,7 @@ test('inbox renders stable card nodes, focused metadata, and position dots', asy
   assert.match(page, /class="prism-inbox-card" ink:for="{{inboxItems}}" ink:key="id" style="{{item.cardStyle}}"/);
   assert.match(page, /data-id="{{item.id}}"[^>]*bindtap="handleInboxTap"/);
   assert.doesNotMatch(page, /prism-inbox-day|inboxFocusedItem\.groupLabel/);
-  assert.match(page, /src="\{\{inboxFocusedItem\.avatar\.src\}\}"/);
+  assert.match(page, /src="\{\{item\.src\}\}"/);
   assert.match(page, /class="prism-inbox-label">{{item.label}}/);
   assert.match(page, /<\/button>\s*<view class="{{item.statusDotClass}}"><\/view>[\s\S]*?class="prism-inbox-meta"/);
   assert.match(page, /class="prism-inbox-project">{{inboxFocusedItem.projectName}}/);
@@ -307,8 +307,8 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
   const now = anchoredNow.getTime();
   try {
     instance.applyHostPlugins({ items: [
-      { host_id: 'host-1', plugin_id: 'codex', icon_url: 'https://example.test/codex.webp' },
-      { host_id: 'host-2', plugin_id: 'claude', icon_url: 'https://example.test/claude.png' }
+      { host_id: 'host-1', plugin_id: 'codex', host_alias: '开发机', device_name: 'Mac', icon_url: 'https://example.test/codex.webp' },
+      { host_id: 'host-2', plugin_id: 'claude', device_name: '工作站', icon_url: 'https://example.test/claude.png' }
     ] });
     instance._inboxCatalog.set('host-1::codex', {
       signature: 'sig-1',
@@ -333,6 +333,7 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
     assert.equal(items[0].id, 'inbox:host-1::codex:c-new');
     assert.deepEqual(items[0].avatar, { src: 'https://example.test/codex.webp', isPng: false });
     assert.deepEqual(items[1].avatar, { src: 'https://example.test/claude.png', isPng: true });
+    assert.deepEqual(items.map(item => item.hostName), ['开发机', '工作站', '开发机']);
     assert.equal(items[0].projectName, 'new');
     assert.equal(items[0].label, '新线程 含换行');
     assert.equal(items[0].timeLabel, '2分钟前');
@@ -352,6 +353,14 @@ test('inbox aggregates conversations across agents, sorts by recency, and caps a
     assert.equal(capped.length, 10);
     assert.equal(capped[0].conversation_id, 'c-0');
     assert.equal(capped[9].conversation_id, 'c-9');
+    assert.equal(capped.some((item) => item.conversation_id === 'c-mid'), false);
+
+    const otherHost = instance._inboxCatalog.get('host-2::claude');
+    otherHost.items = [{ ...otherHost.items[0], updated_at: (now + 1000) / 1000 }];
+    const refreshed = instance.rebuildInbox();
+    assert.equal(refreshed.length, 10);
+    assert.equal(refreshed[0].conversation_id, 'c-mid');
+    assert.equal(refreshed[0].activityAt, now + 1000);
   } finally {
     Date.now = realDateNow;
   }
@@ -386,7 +395,7 @@ test('carousel relative time follows focus and refreshes after midnight', async 
     assert.equal(instance.data.inboxFocusedItem.timeLabel, '2分钟前');
     instance.moveSurfaceFocus(1);
     assert.equal(instance.data.inboxFocusedItem.timeLabel, '昨天');
-    assert.equal(instance.data.inboxFocusedItem.avatar.src, 'https://example.test/codex.svg');
+    assert.equal(instance.data.inboxAvatarLayers[0].src, 'https://example.test/codex.svg');
     assert.equal(instance.data.inboxFocusedItem.projectName, 'p');
 
     Date.now = () => now + 13 * 3600 * 1000;
@@ -445,7 +454,6 @@ test('inbox opens with focus on the first unread thread and keeps focus across r
   await instance.goToInbox();
   assert.equal(instance.data.surface, 'inbox');
   assert.equal(instance.data.menuVisible, true);
-  assert.equal(instance.data.inboxLoading, false, 'the canvas overlay clears once the catalog lands');
   assert.equal(instance.data.focusIndex, 1);
   assert.equal(instance.data.inboxItems[1].conversation_id, 'c-2');
   assert.ok(instance.data.inboxItems[1].className.includes('is-focused'));
@@ -1156,7 +1164,6 @@ test('message loading and main chat page between section anchors via scroll-into
   assert.match(page, /messagesLoading:\s*false/);
   assert.match(page, /messagesLoading:\s*true/);
   assert.match(page, /正在加载···/);
-  assert.match(page, /class="prism-loading-overlay" ink:if="\{\{surface === 'inbox' \? \(!menuVisible \? \(loading \|\| inboxLoading\) : false\) : false\}\}"/);
   assert.match(page, /class="prism-loading-logo" width="148" height="148"/);
   assert.match(page, /id="prismConversationLoader" class="prism-loading-spinner" width="36" height="36" ink:if="\{\{surface === 'main' \? \(messagesLoading \? !messagesLoaded : false\) : false\}\}"/);
   assert.match(page, /class="prism-loading-label" ink:if="\{\{loading\}\}">\{\{text\.boot\.connectingAgent\}\}<\/text>[\s\S]*text\.common\.loading/);
@@ -1605,7 +1612,7 @@ test('main page renders remote Agent avatars and local menu icons', async () => 
   assert.doesNotMatch(page, /LUCIDE_ICON_CDN_ROOT/);
   assert.doesNotMatch(page, /\.prism-agent-icon\s*\{[^}]*filter:/s);
   assert.match(page, /class="prism-agent-icon-image" src="\{\{currentAgentAvatar\.src\}\}" mode="aspectFit"/);
-  assert.match(page, /class="prism-agent-icon-image" src="\{\{inboxFocusedItem\.avatar\.src\}\}" mode="aspectFit"/);
+  assert.match(page, /class="prism-agent-icon-image" src="\{\{item\.src\}\}" mode="aspectFit"/);
   assert.match(page, /\.prism-agent-icon\s*\{[^}]*border-radius:\s*12px[^}]*overflow:\s*hidden/s);
   assert.match(page, /\.prism-agent-icon\.is-png\s*\{[^}]*background-color:\s*#FFFFFF/s);
   assert.match(page, /send: 'send'[\s\S]*stop: 'square'[\s\S]*stopVoice: 'square'[\s\S]*voice: 'mic'/);

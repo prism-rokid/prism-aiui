@@ -250,6 +250,14 @@ button {
   color: var(--color-text-secondary);
   text-align: center;
 }
+.prism-desktop-guide-retry {
+  min-height: 32px;
+  padding: 4px 16px;
+  border-color: var(--prism-primary-60);
+  border-radius: var(--radius-md);
+  background-color: var(--prism-primary-10);
+  font-family: sans-serif;
+}
 .prism-message { width: 100%; display: flex; flex-shrink: 0; flex-direction: column; }
 .prism-message-user { align-items: flex-end; margin-bottom: var(--spacing-md); }
 .prism-chat-row { width: 100%; display: flex; flex-shrink: 0; flex-direction: column; align-items: flex-start; box-sizing: border-box; }
@@ -437,7 +445,9 @@ block {
   box-sizing: border-box;
   padding-top: 72px;
 }
-.prism-inbox-icon { width: 40px; height: 40px; flex-shrink: 0; }
+.prism-inbox-avatar-layer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; }
+.prism-inbox-avatar-layer.is-current { opacity: 0.8; }
+.prism-inbox-icon { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
 .prism-inbox-cards { position: relative; width: 100%; height: 68px; margin-top: 18px; flex-shrink: 0; }
 .prism-inbox-card {
   /* Cards share the middle slot on the 480px canvas. Each card's position
@@ -475,7 +485,8 @@ block {
 .prism-inbox-meta { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; opacity: 0.65; }
 .prism-inbox-meta text { font-family: sans-serif; font-size: 15px; line-height: 20px; }
 .prism-inbox-meta-dot, .prism-inbox-time { flex-shrink: 0; }
-.prism-inbox-progress { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; }
+.prism-inbox-host { font-family: sans-serif; font-size: 14px; line-height: 18px; margin-top: 4px; opacity: 0.65; }
+.prism-inbox-progress { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; margin-top: 22px; }
 .prism-inbox-progress-dot { width: 5px; height: 5px; flex-shrink: 0; border-radius: var(--radius-md); background-color: var(--prism-primary); opacity: 0.35; }
 .prism-inbox-progress-dot.is-current { opacity: 1; }
 

@@ -7,6 +7,7 @@
 </script>
 
 <script setup>
+import { cachedAvatar } from '../../lib/prism-avatar-cache.js';
 import wx from 'wx';
 import { agentAvatar } from '../../lib/prism-icons.js';
 import { createWidgetRuntime } from '../../lib/prism-widget-runtime.js';
@@ -65,6 +66,7 @@ export default {
   },
 
   onDestroy() {
+    this._avatarDestroyed = true;
     this._runtime.destroy();
     if (this._carouselTimer) clearInterval(this._carouselTimer);
     this._carouselTimer = null;
@@ -91,7 +93,7 @@ export default {
     this.setData({
       usageAgentUid: candidate?.uid || '',
       usageAgentName: candidate?.displayName || 'Agent',
-      usageAgentAvatar: agentAvatar(candidate),
+      usageAgentAvatar: cachedAvatar(this, 'usageAgentAvatar', agentAvatar(candidate)),
       usageRows: usageRows(candidate)
     });
   },

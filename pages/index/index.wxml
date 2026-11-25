@@ -65,8 +65,10 @@
 
       <view class="prism-inbox-panel" ink:if="{{surface === 'inbox'}}" role="navigation">
         <view class="prism-inbox-carousel" ink:if="{{inboxFocusedItem}}">
-          <view class="prism-inbox-icon prism-agent-icon {{inboxFocusedItem.avatar.isPng ? 'is-png' : ''}}">
-            <image ink:if="{{inboxFocusedItem.avatar.src}}" class="prism-agent-icon-image" src="{{inboxFocusedItem.avatar.src}}" mode="aspectFit" />
+          <view class="prism-inbox-icon">
+            <view ink:for="{{inboxAvatarLayers}}" ink:key="url" class="prism-inbox-avatar-layer prism-agent-icon {{item.isPng ? 'is-png' : ''}} {{item.url === inboxFocusedItem.avatar.src ? 'is-current' : ''}}">
+              <image ink:if="{{item.src}}" class="prism-agent-icon-image" src="{{item.src}}" mode="aspectFit" />
+            </view>
           </view>
           <view class="{{inboxMotion ? 'prism-inbox-cards is-moving' : 'prism-inbox-cards'}}">
             <view class="prism-inbox-card" ink:for="{{inboxItems}}" ink:key="id" style="{{item.cardStyle}}">
@@ -81,6 +83,7 @@
             <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-meta-dot">·</text>
             <text ink:if="{{inboxFocusedItem.timeLabel}}" class="prism-inbox-time">{{inboxFocusedItem.timeLabel}}</text>
           </view>
+          <text class="prism-inbox-host">{{inboxFocusedItem.hostName}}</text>
           <view class="prism-inbox-progress" aria-label="{{text.chat.ariaInboxProgress}}">
             <view ink:for="{{inboxProgressDots}}" ink:key="id" class="{{item.className}}"></view>
           </view>
@@ -163,9 +166,12 @@
       <view class="prism-desktop-guide" ink:if="{{connectionGuideVisible}}" role="status">
         <text class="prism-desktop-guide-title">{{text.boot.guideTitle}}</text>
         <text class="prism-desktop-guide-hint">{{text.boot.guideHint}}</text>
+        <button class="prism-desktop-guide-retry" tabindex="0" disabled="{{connectionChecking}}" bindtap="retryConnection">
+          {{connectionChecking ? text.boot.guideChecking : text.boot.guideRetry}}
+        </button>
       </view>
 
-      <view class="prism-loading-overlay" ink:if="{{surface === 'inbox' ? (!menuVisible ? (loading || inboxLoading) : false) : false}}" role="status">
+      <view class="prism-loading-overlay" ink:if="{{surface === 'inbox' && !menuVisible && !connectionGuideVisible && loading}}" role="status">
         <view class="prism-loading-state">
           <canvas id="prismLoadingLogo" class="prism-loading-logo" width="148" height="148"></canvas>
           <text class="prism-loading-label" ink:if="{{loading}}">{{text.boot.connectingAgent}}</text>

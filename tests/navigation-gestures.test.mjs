@@ -62,6 +62,68 @@ test('the inbox is the home surface and the agent/thread panels no longer exist'
   assert.doesNotMatch(pageSource, /surface === 'threads'/);
 });
 
+test('the connection guide retries device authorization by tap and restores the inbox when it succeeds', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  page.setData({ connectionGuideVisible: true, apiBaseUrl: 'https://prism.example' });
+
+  let authorize;
+  let attempts = 0;
+  page.hydrateConfiguration = async () => {
+    attempts += 1;
+    if (attempts === 1) return new Promise((resolve) => { authorize = resolve; });
+    page._api = {
+      getHostPlugins: async () => ({
+        items: [{ host_id: 'h1', plugin_id: 'p1', connected: true, available: true }]
+      }),
+      getConversationIndex: async () => ({ items: conversations })
+    };
+    page.setData({ configured: true });
+    return true;
+  };
+  const retry = page.retryConnection.bind(page);
+  let pressedRetry;
+  page.retryConnection = () => (pressedRetry = retry());
+  const key = { code: 'Enter', preventDefault() {} };
+  page.onKeyDown(key);
+  page.onKeyUp(key);
+  assert.ok(pressedRetry, 'the confirm key reaches the guide button');
+  assert.equal(page.data.connectionChecking, true);
+  await retry();
+  assert.equal(attempts, 1, 'another tap does not start a concurrent check');
+  authorize(false);
+  await pressedRetry;
+  assert.equal(page.data.connectionGuideVisible, true);
+  assert.equal(page.data.connectionChecking, false);
+  assert.equal(page.data.toastText, '无法获取设备授权');
+
+  await page.retryConnection();
+  assert.equal(attempts, 2);
+  assert.equal(page.data.connectionGuideVisible, false);
+  assert.equal(page.data.connectionChecking, false);
+  assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
+  assert.match(await readPageBundle(), /<button[^>]*class="prism-desktop-guide-retry"[^>]*bindtap="retryConnection"/);
+});
+
+test('rechecking a configured guide waits for the current poll and fetches a fresh catalog', async (t) => {
+  const page = createPageInstance(await evaluatePageConfig());
+  t.after(() => page.onUnload());
+  page.setData({ connectionGuideVisible: true, configured: true, agentsSignature: 'cached' });
+  const signatures = [];
+  page._api = { getHostPlugins: async (signature) => { signatures.push(signature); return { items: [] }; } };
+  page.hydrateConfiguration = async () => true;
+  let finishPoll;
+  page._pollInFlight = new Promise((resolve) => { finishPoll = resolve; });
+  const result = page.retryConnection();
+  assert.equal(page.data.connectionChecking, true);
+  assert.deepEqual(signatures, []);
+  finishPoll();
+  await result;
+  assert.deepEqual(signatures, ['']);
+  assert.equal(page.data.connectionGuideVisible, true);
+  assert.equal(page.data.connectionChecking, false);
+});
+
 test('bootstrap reveals the first inbox rows without waiting for other Agents or activating Desktop', async (t) => {
   const config = await evaluatePageConfig();
   const page = createPageInstance(config);
@@ -224,7 +286,6 @@ test('back from the conversation page keeps cached inbox items visible during re
   page.onKeyUp({ code: 'Backspace', preventDefault() {} });
   assert.equal(page.data.surface, 'inbox', 'back switches to the inbox immediately');
   assert.equal(page.data.menuVisible, true, 'cached inbox is usable during refresh');
-  assert.equal(page.data.inboxLoading, false, 'returning home never enables a blocking loading overlay');
   assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-b', 'conv-a']);
   resolveRefresh({
     items: [{ conversation_id: 'conv-b', title: '线程B（刷新）', cwd: '/tmp/project-b', updated_at: 300, status: 'idle' }],
@@ -233,7 +294,6 @@ test('back from the conversation page keeps cached inbox items visible during re
   // The back key does not hand back goToInbox's promise; a macrotask lets the
   // background refresh continuation settle.
   await sleep(30);
-  assert.equal(page.data.inboxLoading, false);
   assert.equal(page.data.menuVisible, true, 'inbox list is revealed after the refresh');
   assert.equal(page.data.inboxItems[0].label, '线程B（刷新）', 'background response refreshes the visible cache');
 
@@ -361,7 +421,7 @@ test('arrow steps move inbox focus without activating anything', async () => {
   page.closeConversationStream();
 });
 
-test('return restores the opened card without moving it on a metadata-only update', async (t) => {
+test('return restores the opened card after an index update changes its rank', async (t) => {
   const page = createPageInstance(await evaluatePageConfig());
   t.after(() => page.onUnload());
   seedInboxState(page);
@@ -379,6 +439,7 @@ test('return restores the opened card without moving it on a metadata-only updat
     turn: { messages: [message] }
   });
   receiveMessage({ id: 'old', role: 'user', content: '历史消息', created_at: listedAt - 1000 });
+  assert.equal(page.data.inboxItems[1].activityAt, 100_000, 'message history leaves the index time in place');
 
   page._api.getHostPlugins = async () => ({ changed: false });
   page._api.getConversationIndex = async () => ({
@@ -387,14 +448,16 @@ test('return restores the opened card without moving it on a metadata-only updat
   await page.refreshCatalog();
   await page.goToInbox();
 
-  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-b', 'conv-a']);
+  assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-a', 'conv-b']);
   assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
-  assert.equal(page.data.focusIndex, 1);
+  assert.equal(page.data.focusIndex, 0);
+  assert.equal(page.data.inboxFocusedItem.activityAt, listedAt);
 
   receiveMessage({ id: 'new', role: 'assistant', content: '新消息', created_at: listedAt + 1000 });
   assert.deepEqual(page.data.inboxItems.map((item) => item.conversation_id), ['conv-a', 'conv-b']);
   assert.equal(page.data.inboxFocusedItem.conversation_id, 'conv-a');
   assert.equal(page.data.focusIndex, 0);
+  assert.equal(page.data.inboxFocusedItem.activityAt, listedAt + 1000);
 });
 
 test('return keeps the opened card focusable when ten newer conversations arrive', async (t) => {

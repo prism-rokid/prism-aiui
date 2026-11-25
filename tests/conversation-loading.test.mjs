@@ -42,7 +42,7 @@ function seedConversationState(page, api) {
 }
 
 function overlayVisible(data) {
-  return Boolean(!data.menuVisible && ((data.messagesLoading && !data.messagesLoaded) || data.loading || data.inboxLoading));
+  return Boolean(!data.menuVisible && ((data.messagesLoading && !data.messagesLoaded) || data.loading));
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -183,7 +183,7 @@ test('bootstrap overlay is restricted to the inbox startup state', async () => {
   const pageSource = await readPageBundle();
   assert.match(
     pageSource,
-    /prism-loading-overlay"\s+ink:if="\{\{surface === 'inbox' \? \(!menuVisible \? \(loading \|\| inboxLoading\) : false\) : false\}\}"/
+    /prism-loading-overlay"\s+ink:if="\{\{surface === 'inbox' && !menuVisible && !connectionGuideVisible && loading\}\}"/
   );
   assert.match(
     pageSource,

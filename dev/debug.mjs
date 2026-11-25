@@ -201,7 +201,7 @@ async function main() {
   if (!identity) {
     console.warn(`[debug] No Prism account token in ${configPath} — installing without sign-in (the panel shows its connect guide). Sign in to Prism Hub once and re-run for live data.`);
   } else {
-    console.log(`[debug] Sign-in: identity ${identity.key}, account ${identity.name || 'unknown'}, token length ${identity.accessToken.length}`);
+    console.log(`[debug] Sign-in: identity ${identity.key}`);
   }
 
   const injected = `// TEMPORARY debug injection by \`npm run debug\` — restored right after packing.
@@ -210,34 +210,35 @@ export const LOCAL_DEBUG_AUTH = Object.freeze({
   accountToken: ${JSON.stringify(identity ? identity.accessToken : '')}
 });
 `;
-  await fs.writeFile(LOCAL_TOKEN_PATH, injected, 'utf8');
-  let packResult = null;
+  const buildDir = await fs.mkdtemp(path.join(os.tmpdir(), 'prism-aiui-debug-'));
+  const packagePath = path.join(buildDir, 'package.aix');
   try {
     console.log(`[debug] Packing debug package (relay: ${target}) ...`);
-    const stdout = await run('node', ['scripts/pack-project.mjs'], { capture: true });
+    let stdout;
+    try {
+      await fs.writeFile(LOCAL_TOKEN_PATH, injected, 'utf8');
+      stdout = await run('node', ['scripts/pack-project.mjs', '--output', packagePath], { capture: true });
+    } finally {
+      await fs.writeFile(LOCAL_TOKEN_PATH, LOCAL_TOKEN_TEMPLATE, 'utf8');
+    }
     const line = stdout.split(/\r?\n/).reverse().find((candidate) => candidate.trimStart().startsWith('{'));
-    packResult = line ? JSON.parse(line) : null;
+    if (!line || JSON.parse(line).status !== 'success') throw new Error('pack did not report success');
+
+    console.log('[debug] Enabling developer mode ...');
+    await run(aix, ['device', 'set-dev', ...serialArgs]);
+
+    const definition = path.join(buildDir, 'definition.json');
+    const installArgs = ['install', packagePath, ...serialArgs];
+    if (await fs.access(definition).then(() => true, () => false)) installArgs.push('--definition', definition);
+    console.log('[debug] Installing to device ...');
+    await run(aix, installArgs);
+
+    console.log('[debug] Opening the panel page ...');
+    await run(aix, ['launch-page', packagePath, 'pages/index/index', ...serialArgs]);
+    console.log('[debug] Done. Logs: adb logcat -s Ink');
   } finally {
-    await fs.writeFile(LOCAL_TOKEN_PATH, LOCAL_TOKEN_TEMPLATE, 'utf8');
+    await fs.rm(buildDir, { recursive: true, force: true });
   }
-  if (!packResult || packResult.status !== 'success') {
-    throw new Error('pack did not report success');
-  }
-  const packagePath = packResult.output;
-  console.log(`[debug] Package ready: ${packagePath}`);
-
-  console.log('[debug] Enabling developer mode ...');
-  await run(aix, ['device', 'set-dev', ...serialArgs]);
-
-  const definition = path.join(path.dirname(packagePath), 'definition.json');
-  const installArgs = ['install', packagePath, ...serialArgs];
-  if (await fs.access(definition).then(() => true, () => false)) installArgs.push('--definition', definition);
-  console.log('[debug] Installing to device ...');
-  await run(aix, installArgs);
-
-  console.log('[debug] Opening the panel page ...');
-  await run(aix, ['launch-page', packagePath, 'pages/index/index', ...serialArgs]);
-  console.log('[debug] Done. Logs: adb logcat -s Ink');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
